@@ -1,16 +1,52 @@
-# React + Vite
+# Olive & Thyme — Restaurant Customer App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A mobile-first, in-restaurant ordering app built with React and Vite. Customers scan a QR code at their table, browse the menu, add items to their cart, and place orders — all from their device.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Welcome screen** — greets the customer with their table number
+- **Menu browsing** — filter items by category (Starters, Mains, Pizza, Drinks, Desserts)
+- **Food details** — expanded view with description, image, and quantity selector
+- **Cart management** — add, update quantities, and remove items
+- **Order placement** — review cart and confirm order
+- **Order status tracking** — real-time status updates after order is placed
+- **Smooth animations** — powered by Framer Motion throughout
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Tool | Purpose |
+|------|---------|
+| React 19 | UI framework |
+| Vite | Build tool & dev server |
+| Framer Motion | Animations |
+| Lucide React | Icons |
 
-## Expanding the ESLint configuration
+## Project Structure
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```
+src/
+├── components/       # UI components (CartBar, FoodCard, OrderStatus, etc.)
+├── context/          # CartContext for global cart state
+├── data/             # Menu items and restaurant info
+├── hooks/            # useCart custom hook
+├── pages/            # MenuPage, OrderPage, OrderStatusPage
+├── services/         # API layer
+├── animations/       # Framer Motion variants
+└── utils/            # formatCurrency helper
+```
+
+## Getting Started
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
