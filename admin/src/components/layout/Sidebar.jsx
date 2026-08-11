@@ -1,5 +1,9 @@
 import { motion } from "framer-motion";
 import {
+  useEffect,
+  useState,
+} from "react";
+import {
   LayoutDashboard,
   ShoppingBag,
   UtensilsCrossed,
@@ -38,10 +42,48 @@ const menuItems = [
   },
 ];
 
+const ACCEPTING_ORDERS_KEY =
+  "accepting-orders";
+
+const readAcceptingOrders = () => {
+  const storedValue = localStorage.getItem(
+    ACCEPTING_ORDERS_KEY
+  );
+
+  if (storedValue === null) {
+    return true;
+  }
+
+  return storedValue === "true";
+};
+
 export default function Sidebar({
   open,
   onClose,
 }) {
+  const [acceptingOrders, setAcceptingOrders] =
+    useState(readAcceptingOrders);
+
+  useEffect(() => {
+    const onAcceptingOrdersChanged = (event) => {
+      setAcceptingOrders(
+        Boolean(event.detail)
+      );
+    };
+
+    window.addEventListener(
+      "accepting-orders-changed",
+      onAcceptingOrdersChanged
+    );
+
+    return () => {
+      window.removeEventListener(
+        "accepting-orders-changed",
+        onAcceptingOrdersChanged
+      );
+    };
+  }, []);
+
   return (
     <>
       {open && (
@@ -147,15 +189,25 @@ export default function Sidebar({
 
         <div className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                acceptingOrders
+                  ? "bg-green-500"
+                  : "bg-red-500"
+              }`}
+            />
 
             <span className="text-sm font-medium text-gray-800">
-              Restaurant Open
+              {acceptingOrders
+                ? "Restaurant Open"
+                : "Restaurant Closed"}
             </span>
           </div>
 
           <p className="mt-1 text-xs text-gray-400">
-            Accepting orders
+            {acceptingOrders
+              ? "Accepting orders"
+              : "Not accepting now"}
           </p>
         </div>
       </motion.aside>

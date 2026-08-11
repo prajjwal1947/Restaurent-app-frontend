@@ -52,6 +52,26 @@ export default function Login() {
       payload
     );
 
+    localStorage.setItem(
+      "admin-name",
+      payload.ownerName || "Admin"
+    );
+
+    localStorage.setItem(
+      "admin-email",
+      payload.ownerEmail || ""
+    );
+
+    localStorage.setItem(
+      "restaurant-name",
+      payload.restaurantName || ""
+    );
+
+    localStorage.setItem(
+      "admin-photo",
+      payload.ownerPhoto || ""
+    );
+
     // Later:
     // POST /api/auth/register
   };

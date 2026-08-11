@@ -32,6 +32,9 @@ export default function LoginForm({
   const [resetSent, setResetSent] =
     useState(false);
 
+  const [accountCreated, setAccountCreated] =
+    useState(false);
+
   const [createData, setCreateData] =
     useState({
       restaurantName: "",
@@ -94,8 +97,6 @@ export default function LoginForm({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!email || !password) return;
-
     setLoading(true);
 
     // Temporary login simulation
@@ -105,9 +106,15 @@ export default function LoginForm({
 
     setLoading(false);
 
+    const tempEmail =
+      email || "demo@restaurant.com";
+
+    const tempPassword =
+      password || "temp-1234";
+
     onLogin?.({
-      email,
-      password,
+      email: tempEmail,
+      password: tempPassword,
     });
   };
 
@@ -132,6 +139,7 @@ export default function LoginForm({
     e.preventDefault();
 
     setCreateError("");
+    setAccountCreated(false);
 
     const requiredFields = [
       "restaurantName",
@@ -174,9 +182,14 @@ export default function LoginForm({
 
     onCreateAccount?.(createData);
 
-    setMode("login");
-    setEmail(createData.ownerEmail);
-    setPassword("");
+    setAccountCreated(true);
+
+    setTimeout(() => {
+      setMode("login");
+      setEmail(createData.ownerEmail);
+      setPassword("");
+      setAccountCreated(false);
+    }, 1400);
   };
 
   return (
@@ -377,6 +390,10 @@ export default function LoginForm({
               </>
             )}
           </motion.button>
+
+          <p className="mt-3 text-center text-xs text-gray-500">
+            Temporary mode: click sign in to enter quickly.
+          </p>
         </motion.form>
       )}
 
@@ -414,9 +431,13 @@ export default function LoginForm({
           </div>
 
           {resetSent && (
-            <div className="mb-4 rounded-2xl border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-              Reset instructions sent. Please check your inbox.
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 rounded-2xl border border-green-200 bg-green-50 p-3 text-sm text-green-700"
+            >
+              Reset link sent to {forgotEmail}. Please check your inbox.
+            </motion.div>
           )}
 
           <motion.button
@@ -627,6 +648,16 @@ export default function LoginForm({
             <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {createError}
             </div>
+          )}
+
+          {accountCreated && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="rounded-2xl border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-700"
+            >
+              Account created successfully. Redirecting to sign in...
+            </motion.div>
           )}
 
           <motion.button

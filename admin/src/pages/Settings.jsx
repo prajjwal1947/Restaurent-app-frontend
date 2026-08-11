@@ -4,6 +4,21 @@ import { useState } from "react";
 
 import SettingSection from "../components/settings/SettingSection";
 
+const ACCEPTING_ORDERS_KEY =
+	"accepting-orders";
+
+const readAcceptingOrders = () => {
+	const storedValue = localStorage.getItem(
+		ACCEPTING_ORDERS_KEY
+	);
+
+	if (storedValue === null) {
+		return true;
+	}
+
+	return storedValue === "true";
+};
+
 export default function Settings() {
 	const [restaurantName, setRestaurantName] =
 		useState("DineFlow Restaurant");
@@ -15,7 +30,7 @@ export default function Settings() {
 		useState(18);
 
 	const [acceptingOrders, setAcceptingOrders] =
-		useState(true);
+		useState(readAcceptingOrders);
 
 	const [autoAcceptOrders, setAutoAcceptOrders] =
 		useState(false);
@@ -24,6 +39,20 @@ export default function Settings() {
 		useState(false);
 
 	const handleSave = () => {
+		localStorage.setItem(
+			ACCEPTING_ORDERS_KEY,
+			String(acceptingOrders)
+		);
+
+		window.dispatchEvent(
+			new CustomEvent(
+				"accepting-orders-changed",
+				{
+					detail: acceptingOrders,
+				}
+			)
+		);
+
 		setSaved(true);
 
 		setTimeout(() => {
@@ -153,7 +182,23 @@ export default function Settings() {
 							label="Accept New Orders"
 							description="Turn this off when your restaurant is closed."
 							checked={acceptingOrders}
-							onChange={setAcceptingOrders}
+							onChange={(value) => {
+								setAcceptingOrders(value);
+
+								localStorage.setItem(
+									ACCEPTING_ORDERS_KEY,
+									String(value)
+								);
+
+								window.dispatchEvent(
+									new CustomEvent(
+										"accepting-orders-changed",
+										{
+											detail: value,
+										}
+									)
+								);
+							}}
 						/>
 
 						<ToggleRow
