@@ -2,68 +2,15 @@ import { motion } from "framer-motion";
 import {
   Plus,
   Search,
-  MoreVertical,
+  Pencil,
   Eye,
   EyeOff,
+  Upload,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MenuItemModal from "../components/menu/MenuItemModal";
-
-const categories = [
-  "All",
-  "Starters",
-  "Main Course",
-  "Pizza",
-  "Desserts",
-  "Drinks",
-];
-
-const menuItems = [
-  {
-    id: 1,
-    name: "Margherita Pizza",
-    description:
-      "Classic tomato sauce, mozzarella and fresh basil",
-    price: 299,
-    category: "Pizza",
-    available: true,
-    image:
-      "https://images.unsplash.com/photo-1574071318508-1cdbab80d002",
-  },
-  {
-    id: 2,
-    name: "Classic Burger",
-    description:
-      "Juicy grilled patty with lettuce, tomato and cheese",
-    price: 399,
-    category: "Main Course",
-    available: true,
-    image:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd",
-  },
-  {
-    id: 3,
-    name: "Paneer Tikka",
-    description:
-      "Char-grilled cottage cheese with Indian spices",
-    price: 349,
-    category: "Starters",
-    available: true,
-    image:
-      "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8",
-  },
-  {
-    id: 4,
-    name: "Chocolate Brownie",
-    description:
-      "Warm chocolate brownie with vanilla ice cream",
-    price: 249,
-    category: "Desserts",
-    available: false,
-    image:
-      "https://images.unsplash.com/photo-1606313564200-e75d5e30476c",
-  },
-];
+import BulkMenuImportModal from "../components/menu/BulkMenuImportModal";
+import { adminApi } from "../services/api";
 
 export default function Menu() {
   const [activeCategory, setActiveCategory] =
@@ -72,16 +19,56 @@ export default function Menu() {
   const [search, setSearch] =
     useState("");
 
-  const [items, setItems] =
-    useState(menuItems);
+  const [items, setItems] = useState([]);
+  const [categoryRecords, setCategoryRecords] = useState([]);
+  const [error, setError] = useState("");
+  const [categoryName, setCategoryName] = useState("");
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  useEffect(() => {
+    Promise.all([adminApi.categories(), adminApi.menuItems("page=1&pageSize=100")])
+      .then(([categoryResult, itemResult]) => {
+        setCategoryRecords(normalizeCategories(categoryResult));
+        setItems((itemResult || []).map(normalizeItem));
+      })
+      .catch((requestError) => setError(requestError.message));
+  }, []);
+
+  const categories = ["All", ...categoryRecords.map((category) => category.name)];
+
+  const addCategory = async (event) => {
+    event.preventDefault();
+    const name = categoryName.trim();
+    if (!name) return;
+    setSavingCategory(true);
+    setError("");
+    try {
+      const created = await adminApi.createCategory({
+        name,
+        sortOrder: categoryRecords.length,
+      });
+      const record = created?.category || created;
+      setCategoryRecords((current) => [...current, record]);
+      setActiveCategory(record.name);
+      setCategoryName("");
+      setShowCategoryForm(false);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSavingCategory(false);
+    }
+  };
 
   const [showAddModal, setShowAddModal] =
     useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
 
   const filteredItems = items.filter((item) => {
     const categoryMatch =
       activeCategory === "All" ||
-      item.category === activeCategory;
+          item.category === activeCategory;
 
     const searchMatch =
       item.name
@@ -91,21 +78,22 @@ export default function Menu() {
     return categoryMatch && searchMatch;
   });
 
-  const toggleAvailability = (id) => {
-    setItems((current) =>
-      current.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              available: !item.available,
-            }
-          : item
-      )
-    );
+  const toggleAvailability = async (id) => {
+    const item = items.find((currentItem) => currentItem.id === id);
+    if (!item) return;
+    try {
+      await adminApi.setAvailability(id, !item.available);
+      setItems((current) => current.map((currentItem) =>
+        currentItem.id === id ? { ...currentItem, available: !item.available } : currentItem
+      ));
+    } catch (requestError) {
+      setError(requestError.message);
+    }
   };
 
   return (
     <div className="mx-auto max-w-7xl">
+      {error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</p>}
       {/* Header */}
 
       <motion.div
@@ -134,22 +122,25 @@ export default function Menu() {
           </p>
         </div>
 
-        <motion.button
-          whileHover={{
-            y: -2,
-          }}
-          whileTap={{
-            scale: 0.97,
-          }}
-          onClick={() =>
-            setShowAddModal(true)
-          }
-          className="flex items-center justify-center gap-2 rounded-2xl bg-[#e86a33] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-orange-100"
-        >
-          <Plus size={18} />
-
-          Add Menu Item
-        </motion.button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => setShowBulkImport(true)}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-5 py-3 text-sm font-semibold text-[#b9572b] hover:bg-orange-50"
+          >
+            <Upload size={17} />
+            Import from photo
+          </button>
+          <motion.button
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center justify-center gap-2 rounded-2xl bg-[#e86a33] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-orange-100"
+          >
+            <Plus size={18} />
+            Add Menu Item
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* Search */}
@@ -188,7 +179,34 @@ export default function Menu() {
             {category}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setShowCategoryForm((open) => !open)}
+          className="whitespace-nowrap rounded-full border border-dashed border-orange-300 px-4 py-2 text-xs font-semibold text-[#e86a33]"
+        >
+          + Add Category
+        </button>
       </div>
+
+      {showCategoryForm && (
+        <form onSubmit={addCategory} className="mt-2 flex max-w-md gap-2">
+          <input
+            autoFocus
+            value={categoryName}
+            onChange={(event) => setCategoryName(event.target.value)}
+            placeholder="Category name"
+            aria-label="New category name"
+            className="min-w-0 flex-1 rounded-xl border border-orange-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#e86a33]"
+          />
+          <button
+            type="submit"
+            disabled={savingCategory || !categoryName.trim()}
+            className="rounded-xl bg-[#e86a33] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {savingCategory ? "Saving..." : "Save"}
+          </button>
+        </form>
+      )}
 
       {/* Items */}
 
@@ -249,8 +267,14 @@ export default function Menu() {
                   </h3>
                 </div>
 
-                <button className="rounded-xl p-2 text-gray-400 hover:bg-orange-50">
-                  <MoreVertical size={18} />
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(item)}
+                  aria-label={`Edit ${item.name}`}
+                  title="Edit menu item"
+                  className="rounded-xl p-2 text-gray-400 hover:bg-orange-50"
+                >
+                  <Pencil size={18} />
                 </button>
               </div>
 
@@ -260,7 +284,7 @@ export default function Menu() {
 
               <div className="mt-5 flex items-center justify-between">
                 <span className="text-lg font-bold text-gray-900">
-                  ₹{item.price}
+                  {item.variants?.length ? "From " : ""}₹{item.price}
                 </span>
 
                 <button
@@ -289,19 +313,99 @@ export default function Menu() {
         ))}
       </motion.div>
 
-      <MenuItemModal
-        open={showAddModal}
-        onClose={() =>
-          setShowAddModal(false)
-        }
-        categories={categories}
-        onAdd={(newItem) => {
-          setItems((current) => [
-            ...current,
-            newItem,
-          ]);
+      {(showAddModal || editingItem) && <MenuItemModal
+        key={editingItem?.id || "new-menu-item"}
+        open
+        initialItem={editingItem}
+        onClose={() => {
+          setShowAddModal(false);
+          setEditingItem(null);
         }}
-      />
+        categories={categories}
+        onAdd={async (newItem) => {
+          const category = categoryRecords.find((record) => record.name === newItem.category);
+          if (!category) return false;
+          try {
+            const payload = {
+              name: newItem.name,
+              description: newItem.description,
+              categoryId: category.id,
+              priceMinor: Math.round(newItem.price * 100),
+              imageUrl: newItem.image,
+              variants: newItem.variants.map((variant) => ({
+                name: variant.name,
+                priceMinor: Math.round(variant.price * 100),
+                sortOrder: variant.sortOrder,
+              })),
+              isAvailable: true,
+              sortOrder: 0,
+              addOnIds: [],
+            };
+            if (editingItem) {
+              const updated = await adminApi.updateMenuItem(editingItem.id, payload);
+              setItems((current) => current.map((item) =>
+                item.id === editingItem.id ? normalizeItem(updated) : item
+              ));
+            } else {
+              const created = await adminApi.createMenuItem(payload);
+              setItems((current) => [...current, normalizeItem(created)]);
+            }
+            return true;
+          } catch (requestError) {
+            setError(requestError.message);
+            return false;
+          }
+        }}
+      />}
+
+      {showBulkImport && (
+        <BulkMenuImportModal
+          categories={categoryRecords}
+          onClose={() => setShowBulkImport(false)}
+          onImport={async (rows) => {
+            const payload = rows.map((row, index) => {
+              const category = categoryRecords.find((record) => record.name === row.category);
+              if (!category) throw new Error(`Category "${row.category}" is no longer available.`);
+              return {
+                name: row.name,
+                description: row.description || "",
+                categoryId: category.id,
+                priceMinor: Math.round(row.price * 100),
+                imageUrl: row.imageUrl || "",
+                isAvailable: true,
+                sortOrder: items.length + index,
+                addOnIds: [],
+              };
+            });
+            const created = await adminApi.createMenuItemsBulk({ items: payload });
+            setItems((current) => [...current, ...created.map(normalizeItem)]);
+          }}
+        />
+      )}
     </div>
   );
+}
+
+function normalizeItem(item) {
+  const variants = (item.variants || []).map((variant) => ({
+    ...variant,
+    price: Math.round((variant.priceMinor || 0) / 100),
+  }));
+  return {
+    ...item,
+    variants,
+    price: variants.length
+      ? Math.min(...variants.map((variant) => variant.price))
+      : Math.round((item.priceMinor || 0) / 100),
+    category: item.category?.name || item.category || "Uncategorized",
+    available: item.isAvailable ?? item.available ?? false,
+    image: item.imageUrl || item.image || "",
+  };
+}
+
+function normalizeCategories(result) {
+  const categories = Array.isArray(result)
+    ? result
+    : result?.categories || result?.items || [];
+  return categories.filter((category) => category?.id && category?.name);
 }

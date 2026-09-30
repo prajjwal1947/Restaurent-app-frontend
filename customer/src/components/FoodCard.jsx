@@ -1,16 +1,24 @@
 import { motion } from "framer-motion";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, Star } from "lucide-react";
 import { useState } from "react";
+
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80";
 
 export default function FoodCard({
   item,
   onAdd,
   onOpenDetails,
+  orderCount,
 }) {
   const [added, setAdded] = useState(false);
 
   const handleAdd = (event) => {
     event.stopPropagation();
+
+    if (item.variants?.length) {
+      onOpenDetails(item);
+      return;
+    }
 
     setAdded(true);
 
@@ -42,14 +50,19 @@ export default function FoodCard({
     >
       <div className="food-image-wrapper">
         <img
-          src={item.image}
+          src={item.image || FALLBACK_IMAGE}
           alt={item.name}
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = FALLBACK_IMAGE;
+          }}
         />
 
         <motion.button
           className={`add-button ${
             added ? "added" : ""
           }`}
+          aria-label={item.variants?.length ? `Choose a size for ${item.name}` : `Add ${item.name}`}
           onClick={handleAdd}
           animate={
             added
@@ -72,10 +85,31 @@ export default function FoodCard({
       <div className="food-info">
         <h3>{item.name}</h3>
 
+        {item.ratingCount > 0 && (
+          <div className="food-rating" aria-label={`${Number(item.rating).toFixed(1)} out of 5 from ${item.ratingCount} ratings`}>
+            <Star size={13} fill="currentColor" />
+            <strong>{Number(item.rating).toFixed(1)}</strong>
+            <span>({item.ratingCount})</span>
+          </div>
+        )}
+
+        {orderCount > 0 && (
+          <p className="food-popularity">Ordered {orderCount} times in the last 30 days</p>
+        )}
+
         <p>{item.description}</p>
 
         <div className="food-bottom">
-          <span>₹{item.price}</span>
+          <span className="food-price">
+            {item.variants?.length ? "From " : ""}₹{item.price}
+          </span>
+          {item.variants?.length > 0 && (
+            <div className="food-variant-prices" aria-label="Available sizes and prices">
+              {item.variants.map((variant) => (
+                <span key={variant.id}>{variant.name} ₹{variant.price}</span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </motion.article>

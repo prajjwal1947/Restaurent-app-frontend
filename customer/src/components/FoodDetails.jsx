@@ -1,24 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Minus, Plus, Check } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-const addOns = [
-  {
-    id: 1,
-    name: "Extra Parmesan",
-    price: 40,
-  },
-  {
-    id: 2,
-    name: "Truffle Oil",
-    price: 60,
-  },
-  {
-    id: 3,
-    name: "Garlic Bread",
-    price: 80,
-  },
-];
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80";
 
 export default function FoodDetails({
   item,
@@ -27,30 +11,27 @@ export default function FoodDetails({
 }) {
   const [quantity, setQuantity] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState([]);
+  const [selectedVariantId, setSelectedVariantId] = useState("");
   const [added, setAdded] = useState(false);
-
-  useEffect(() => {
-    if (!item) return;
-
-    setQuantity(1);
-    setSelectedAddOns([]);
-    setAdded(false);
-  }, [item]);
 
   if (!item) {
     return null;
   }
 
+  const variants = item.variants || [];
+  const selectedVariant = variants.find((variant) => variant.id === selectedVariantId);
+  const unitPrice = selectedVariant?.price ?? item.price;
+
   const addOnTotal = selectedAddOns.reduce(
     (total, id) => {
-      const addOn = addOns.find((item) => item.id === id);
+      const addOn = item.addOns?.find((option) => option.id === id);
 
       return total + (addOn?.price || 0);
     },
     0
   );
 
-  const total = (item.price + addOnTotal) * quantity;
+  const total = (unitPrice + addOnTotal) * quantity;
 
   const toggleAddOn = (id) => {
     setSelectedAddOns((current) => {
@@ -63,15 +44,19 @@ export default function FoodDetails({
   };
 
   const handleAdd = () => {
-    const selectedOptions = addOns.filter((addOn) =>
+    if (variants.length > 0 && !selectedVariant) return;
+    const selectedOptions = (item.addOns || []).filter((addOn) =>
       selectedAddOns.includes(addOn.id)
     );
 
     onAddToCart({
       ...item,
+      variantId: selectedVariant?.id,
+      variantName: selectedVariant?.name,
+      price: unitPrice,
       quantity,
       addOns: selectedOptions,
-      unitPrice: item.price + addOnTotal,
+      unitPrice: unitPrice + addOnTotal,
     });
 
     setAdded(true);
@@ -129,8 +114,12 @@ export default function FoodDetails({
               layoutId={`food-${item.id}`}
             >
               <img
-                src={item.image}
+                src={item.image || FALLBACK_IMAGE}
                 alt={item.name}
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = FALLBACK_IMAGE;
+                }}
               />
             </motion.div>
 
@@ -141,7 +130,7 @@ export default function FoodDetails({
                   <h2>{item.name}</h2>
 
                   <p className="details-price">
-                    ₹{item.price}
+                    {variants.length > 0 && !selectedVariant ? "From " : ""}₹{unitPrice}
                   </p>
                 </div>
               </div>
@@ -154,6 +143,39 @@ export default function FoodDetails({
 
               <div className="details-divider" />
 
+              {variants.length > 0 && (
+                <div className="details-section">
+                  <div className="details-section-heading">
+                    <span>CHOOSE A SIZE</span>
+                    <small>REQUIRED</small>
+                  </div>
+
+                  <div className="addon-list" role="radiogroup" aria-label="Choose a size">
+                    {variants.map((variant) => {
+                      const selected = selectedVariantId === variant.id;
+                      return (
+                        <button
+                          key={variant.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          className={`addon ${selected ? "selected" : ""}`}
+                          onClick={() => setSelectedVariantId(variant.id)}
+                        >
+                          <span className="addon-left">
+                            <span className={`addon-checkbox rounded-full ${selected ? "checked" : ""}`}>
+                              {selected && <Check size={13} />}
+                            </span>
+                            <span>{variant.name}</span>
+                          </span>
+                          <span>₹{variant.price}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Add-ons */}
               <div className="details-section">
                 <div className="details-section-heading">
@@ -163,7 +185,7 @@ export default function FoodDetails({
                 </div>
 
                 <div className="addon-list">
-                  {addOns.map((addOn) => {
+                  {(item.addOns || []).map((addOn) => {
                     const selected =
                       selectedAddOns.includes(addOn.id);
 
@@ -231,6 +253,7 @@ export default function FoodDetails({
                     added ? "success" : ""
                   }`}
                   onClick={handleAdd}
+                  disabled={variants.length > 0 && !selectedVariant}
                   whileTap={{
                     scale: 0.97,
                   }}

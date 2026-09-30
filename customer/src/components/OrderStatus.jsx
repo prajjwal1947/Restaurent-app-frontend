@@ -5,6 +5,7 @@ import {
   ChefHat,
   Utensils,
   Bell,
+  Star,
 } from "lucide-react";
 
 const steps = [
@@ -65,6 +66,12 @@ export default function OrderStatus({
   currentStep = 1,
   orderNumber,
   onBackToMenu,
+  orderItems = [],
+  rating,
+  ratingPending,
+  onRate,
+  submittingOrderItemRatingId,
+  onRateOrderItem,
 }) {
   const [waiterCalled, setWaiterCalled] =
     useState(false);
@@ -273,6 +280,62 @@ export default function OrderStatus({
           );
         })}
       </div>
+
+      {currentStep === 4 && (
+        <section className="order-feedback" aria-label="Rate your order">
+          <div className="order-rating" aria-labelledby="order-rating-title">
+            <h2 id="order-rating-title">How was your order?</h2>
+            <p>Rate your overall experience.</p>
+            <div className="order-rating-stars" role="radiogroup" aria-label="Rate this order">
+              {[1, 2, 3, 4, 5].map((stars) => (
+                <button
+                  key={stars}
+                  type="button"
+                  role="radio"
+                  aria-checked={rating === stars}
+                  aria-label={`${stars} star${stars === 1 ? "" : "s"}`}
+                  disabled={ratingPending || rating != null}
+                  onClick={() => onRate(stars)}
+                >
+                  <Star size={28} fill={rating >= stars ? "currentColor" : "none"} />
+                </button>
+              ))}
+            </div>
+            <p className="order-rating-message" aria-live="polite">
+              {rating ? `Thanks for your ${rating}-star rating.` : "Tap a star to rate this order."}
+            </p>
+          </div>
+
+          <div className="product-ratings">
+            <h2>Rate each item</h2>
+            <p className="product-ratings-intro">Your ratings help others choose from the menu.</p>
+            {orderItems.map((item) => (
+              <div className="product-rating-row" key={item.id}>
+                <div className="product-rating-title">
+                  <strong>{item.nameSnapshot}</strong>
+                  {item.variantNameSnapshot && <span>{item.variantNameSnapshot}</span>}
+                  {item.rating != null && <span className="product-rating-saved">Rated {item.rating} / 5</span>}
+                </div>
+                <div className="order-rating-stars" role="radiogroup" aria-label={`Rate ${item.nameSnapshot}`}>
+                  {[1, 2, 3, 4, 5].map((stars) => (
+                    <button
+                      key={stars}
+                      type="button"
+                      role="radio"
+                      aria-checked={item.rating === stars}
+                      aria-label={`${stars} stars for ${item.nameSnapshot}`}
+                      disabled={item.rating != null || submittingOrderItemRatingId === item.id}
+                      onClick={() => onRateOrderItem(item.id, stars)}
+                    >
+                      <Star size={23} fill={item.rating >= stars ? "currentColor" : "none"} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="status-bottom">
         <p>

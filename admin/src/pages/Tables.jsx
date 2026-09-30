@@ -3,70 +3,16 @@ import {
   Plus,
   Search,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import TableGrid from "../components/tables/TableGrid";
 import QRCodeModal from "../components/tables/QRCodeModal";
 import AddTableModal from "../components/tables/AddTableModal";
-
-const initialTables = [
-  {
-    id: "table-1",
-    number: 1,
-    capacity: 2,
-    status: "AVAILABLE",
-  },
-  {
-    id: "table-2",
-    number: 2,
-    capacity: 2,
-    status: "OCCUPIED",
-    orderNumber: 1024,
-    orderTotal: 849,
-  },
-  {
-    id: "table-3",
-    number: 3,
-    capacity: 4,
-    status: "AVAILABLE",
-  },
-  {
-    id: "table-4",
-    number: 4,
-    capacity: 4,
-    status: "RESERVED",
-  },
-  {
-    id: "table-5",
-    number: 5,
-    capacity: 6,
-    status: "AVAILABLE",
-  },
-  {
-    id: "table-6",
-    number: 6,
-    capacity: 4,
-    status: "OCCUPIED",
-    orderNumber: 1023,
-    orderTotal: 599,
-  },
-  {
-    id: "table-7",
-    number: 7,
-    capacity: 2,
-    status: "AVAILABLE",
-  },
-  {
-    id: "table-8",
-    number: 8,
-    capacity: 6,
-    status: "AVAILABLE",
-  },
-];
+import { adminApi } from "../services/api";
 
 export default function Tables() {
-  const [tables, setTables] =
-    useState(initialTables);
+  const [tables, setTables] = useState([]);
+  const [error, setError] = useState("");
 
   const [search, setSearch] =
     useState("");
@@ -76,6 +22,13 @@ export default function Tables() {
 
   const [showAddModal, setShowAddModal] =
     useState(false);
+
+  useEffect(() => {
+    const params = search ? `search=${encodeURIComponent(search)}` : "";
+    adminApi.tables(params)
+      .then((result) => setTables(result || []))
+      .catch((requestError) => setError(requestError.message));
+  }, [search]);
 
   const filteredTables = useMemo(() => {
     return tables.filter((table) =>
@@ -100,6 +53,7 @@ export default function Tables() {
   return (
     <>
       <div className="mx-auto max-w-7xl">
+        {error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</p>}
         {/* Header */}
 
         <motion.div
@@ -220,14 +174,17 @@ export default function Tables() {
         onClose={() =>
           setShowAddModal(false)
         }
-        onAdd={(newTable) => {
-          setTables((current) => [
-            ...current,
-            {
-              ...newTable,
-              id: `table-${Date.now()}`,
-            },
-          ]);
+        onAdd={async (newTable) => {
+          try {
+            const created = await adminApi.createTable({
+              number: newTable.number,
+              capacity: newTable.capacity,
+            });
+            setTables((current) => [...current, created]);
+            setShowAddModal(false);
+          } catch (requestError) {
+            setError(requestError.message);
+          }
         }}
       />
     </>

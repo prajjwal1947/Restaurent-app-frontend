@@ -8,32 +8,15 @@ import {
 } from "lucide-react";
 
 import LoginForm from "../components/auth/LoginForm";
+import { adminApi, storeAuth } from "../services/api";
 
 export default function Login() {
   const navigate = useNavigate();
 
-  const handleLogin = (credentials) => {
-    console.log(
-      "Login credentials:",
-      credentials
-    );
-
-    localStorage.setItem(
-      "admin-authenticated",
-      "true"
-    );
-
-    localStorage.setItem(
-      "admin-email",
-      credentials.email
-    );
-
-    navigate("/", {
-      replace: true,
-    });
-
-    // Later:
-    // POST /api/auth/login
+  const handleLogin = async (credentials) => {
+    const result = await adminApi.login(credentials);
+    storeAuth(result);
+    navigate("/", { replace: true });
   };
 
   const handleForgotPassword = ({ email }) => {
@@ -46,34 +29,17 @@ export default function Login() {
     // POST /api/auth/forgot-password
   };
 
-  const handleCreateAccount = (payload) => {
-    console.log(
-      "Create account payload:",
-      payload
-    );
-
-    localStorage.setItem(
-      "admin-name",
-      payload.ownerName || "Admin"
-    );
-
-    localStorage.setItem(
-      "admin-email",
-      payload.ownerEmail || ""
-    );
-
-    localStorage.setItem(
-      "restaurant-name",
-      payload.restaurantName || ""
-    );
-
-    localStorage.setItem(
-      "admin-photo",
-      payload.ownerPhoto || ""
-    );
-
-    // Later:
-    // POST /api/auth/register
+  const handleCreateAccount = async (payload) => {
+    await adminApi.register({
+      restaurantName: payload.restaurantName,
+      restaurantEmail: payload.restaurantEmail,
+      phone: payload.phone,
+      ownerName: payload.ownerName,
+      ownerEmail: payload.ownerEmail,
+      ownerPassword: payload.ownerPassword,
+      address: payload.address,
+      city: payload.city,
+    });
   };
 
   return (

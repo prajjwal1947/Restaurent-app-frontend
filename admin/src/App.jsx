@@ -13,15 +13,10 @@ import Orders from "./pages/Orders";
 import Menu from "./pages/Menu";
 import Tables from "./pages/Tables";
 import Settings from "./pages/Settings";
-
-const AUTH_STORAGE_KEY =
-  "admin-authenticated";
+import { getAccessToken } from "./services/api";
 
 function isAuthenticated() {
-  return (
-    localStorage.getItem(AUTH_STORAGE_KEY) ===
-    "true"
-  );
+  return Boolean(getAccessToken());
 }
 
 function ProtectedLayout() {

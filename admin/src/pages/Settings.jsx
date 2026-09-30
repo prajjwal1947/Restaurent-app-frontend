@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import { Save } from "lucide-react";
 import { useState } from "react";
+import { useEffect } from "react";
 
 import SettingSection from "../components/settings/SettingSection";
+import { adminApi } from "../services/api";
 
 const ACCEPTING_ORDERS_KEY =
 	"accepting-orders";
@@ -20,8 +22,9 @@ const readAcceptingOrders = () => {
 };
 
 export default function Settings() {
-	const [restaurantName, setRestaurantName] =
-		useState("DineFlow Restaurant");
+	const [restaurantName, setRestaurantName] = useState("");
+	const [restaurantEmail, setRestaurantEmail] = useState("");
+	const [error, setError] = useState("");
 
 	const [serviceCharge, setServiceCharge] =
 		useState(5);
@@ -35,10 +38,28 @@ export default function Settings() {
 	const [autoAcceptOrders, setAutoAcceptOrders] =
 		useState(false);
 
+	useEffect(() => {
+		adminApi.restaurant()
+			.then((restaurant) => {
+				setRestaurantName(restaurant.name || "");
+				setRestaurantEmail(restaurant.email || "");
+			})
+			.catch((requestError) => setError(requestError.message));
+	}, []);
+
 	const [saved, setSaved] =
 		useState(false);
 
-	const handleSave = () => {
+	const handleSave = async () => {
+		try {
+			await adminApi.updateRestaurant({
+				name: restaurantName,
+				email: restaurantEmail,
+			});
+		} catch (requestError) {
+			setError(requestError.message);
+			return;
+		}
 		localStorage.setItem(
 			ACCEPTING_ORDERS_KEY,
 			String(acceptingOrders)
@@ -62,6 +83,7 @@ export default function Settings() {
 
 	return (
 		<div className="mx-auto max-w-5xl">
+			{error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</p>}
 			<motion.div
 				initial={{
 					opacity: 0,
@@ -125,7 +147,8 @@ export default function Settings() {
 
 							<input
 								type="email"
-								defaultValue="admin@dineflow.com"
+								value={restaurantEmail}
+								onChange={(e) => setRestaurantEmail(e.target.value)}
 								className="w-full rounded-xl border border-orange-100 bg-white px-3 py-2.5 outline-none focus:border-[#e86a33]"
 							/>
 						</label>

@@ -12,8 +12,8 @@ export default function QRCodeModal({
 
   if (!table) return null;
 
-  const qrUrl =
-    `${window.location.origin}/t/${table.id}`;
+  const qrUrl = table.qrUrl ||
+    `${window.location.origin}/t/${table.qrToken}`;
 
   const copyUrl = async () => {
     await navigator.clipboard.writeText(

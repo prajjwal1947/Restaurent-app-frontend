@@ -3,6 +3,7 @@ import {
   Clock3,
   Check,
   ChefHat,
+  ReceiptText,
 } from "lucide-react";
 
 const statusStyles = {
@@ -21,6 +22,7 @@ const statusStyles = {
 export default function AdminOrderCard({
   order,
   onStatusChange,
+  onGenerateBill,
 }) {
   const nextStatus = {
     PENDING: "CONFIRMED",
@@ -77,6 +79,7 @@ export default function AdminOrderCard({
               >
                 <span className="text-gray-600">
                   {item.quantity} × {item.name}
+                  {item.variantName && <span className="text-gray-400"> · {item.variantName}</span>}
                 </span>
 
                 <span className="text-gray-400">
@@ -119,6 +122,15 @@ export default function AdminOrderCard({
               Mark {next}
             </motion.button>
           )}
+
+          <button
+            type="button"
+            onClick={() => onGenerateBill(order)}
+            className="flex items-center gap-2 rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-xs font-semibold text-[#b9572b] transition hover:bg-orange-50"
+          >
+            <ReceiptText size={15} />
+            Generate bill
+          </button>
         </div>
       </div>
     </motion.div>

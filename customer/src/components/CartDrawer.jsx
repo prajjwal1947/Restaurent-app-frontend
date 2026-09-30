@@ -7,12 +7,16 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80";
+
 export default function CartDrawer({
   cart,
   onBack,
   onUpdateQuantity,
   onRemove,
   onPlaceOrder,
+  tableNumber,
+  placingOrder,
 }) {
   const getItemPrice = (item) =>
     item.unitPrice ?? item.price ?? 0;
@@ -43,7 +47,7 @@ export default function CartDrawer({
           </button>
 
           <div>
-            <p>TABLE 12</p>
+            <p>TABLE {tableNumber}</p>
             <h2>Your Order</h2>
           </div>
         </header>
@@ -77,8 +81,12 @@ export default function CartDrawer({
                 layout
               >
                 <img
-                  src={item.image}
+                  src={item.image || FALLBACK_IMAGE}
                   alt={item.name}
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = FALLBACK_IMAGE;
+                  }}
                 />
 
                 <div className="cart-item-content">
@@ -86,13 +94,10 @@ export default function CartDrawer({
                     <div>
                       <h3>{item.name}</h3>
 
-                      {item.addOns?.length > 0 && (
+                      {(item.variantName || item.addOns?.length > 0) && (
                         <p>
-                          {item.addOns
-                            .map(
-                              (addOn) =>
-                                addOn.name
-                            )
+                          {[item.variantName, ...(item.addOns || []).map((addOn) => addOn.name)]
+                            .filter(Boolean)
                             .join(" · ")}
                         </p>
                       )}
@@ -179,9 +184,10 @@ export default function CartDrawer({
             <button
               className="place-order-button"
               onClick={onPlaceOrder}
+              disabled={placingOrder}
             >
               <span>
-                Send Order to Kitchen
+                {placingOrder ? "Sending Order..." : "Send Order to Kitchen"}
               </span>
 
               <ArrowRight size={18} />

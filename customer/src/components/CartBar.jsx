@@ -8,7 +8,7 @@ export default function CartBar({ cart, onOpen }) {
   );
 
   const total = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + (item.unitPrice ?? item.price ?? 0) * item.quantity,
     0
   );
 

@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import { adminApi, clearAuth, getStoredUser } from "../../services/api";
 
 export default function Header({ onMenuClick }) {
   const navigate = useNavigate();
@@ -25,20 +26,19 @@ export default function Header({ onMenuClick }) {
   const [profileOpen, setProfileOpen] =
     useState(false);
 
-  const adminName =
-    localStorage.getItem("admin-name") ||
-    "Admin";
+  const storedUser = getStoredUser();
+  const adminName = storedUser?.name || "Admin";
 
   const adminEmail =
-    localStorage.getItem("admin-email") ||
+    storedUser?.email ||
     "admin@restaurant.com";
 
   const restaurantName =
-    localStorage.getItem("restaurant-name") ||
+    storedUser?.restaurantName ||
     "Restaurant Manager";
 
   const adminPhoto =
-    localStorage.getItem("admin-photo") ||
+    storedUser?.photoUrl ||
     "";
 
   useEffect(() => {
@@ -66,11 +66,9 @@ export default function Header({ onMenuClick }) {
     };
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem(
-      "admin-authenticated"
-    );
-
+  const handleLogout = async () => {
+    await adminApi.logout().catch(() => {});
+    clearAuth();
     navigate("/login", {
       replace: true,
     });

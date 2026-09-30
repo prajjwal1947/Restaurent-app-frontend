@@ -98,24 +98,13 @@ export default function LoginForm({
     e.preventDefault();
 
     setLoading(true);
-
-    // Temporary login simulation
-    await new Promise((resolve) =>
-      setTimeout(resolve, 1200)
-    );
-
-    setLoading(false);
-
-    const tempEmail =
-      email || "demo@restaurant.com";
-
-    const tempPassword =
-      password || "temp-1234";
-
-    onLogin?.({
-      email: tempEmail,
-      password: tempPassword,
-    });
+    try {
+      await onLogin?.({ email, password });
+    } catch (error) {
+      setCreateError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleForgotPassword = async (e) => {
@@ -124,15 +113,16 @@ export default function LoginForm({
     if (!forgotEmail) return;
 
     setLoading(true);
-    await new Promise((resolve) =>
-      setTimeout(resolve, 900)
-    );
-    setLoading(false);
     setResetSent(true);
 
-    onForgotPassword?.({
-      email: forgotEmail,
-    });
+    try {
+      await onForgotPassword?.({ email: forgotEmail });
+      setResetSent(true);
+    } catch (error) {
+      setCreateError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreateAccount = async (e) => {
@@ -175,14 +165,14 @@ export default function LoginForm({
     }
 
     setLoading(true);
-    await new Promise((resolve) =>
-      setTimeout(resolve, 1200)
-    );
-    setLoading(false);
-
-    onCreateAccount?.(createData);
-
-    setAccountCreated(true);
+    try {
+      await onCreateAccount?.(createData);
+      setAccountCreated(true);
+    } catch (error) {
+      setCreateError(error.message);
+    } finally {
+      setLoading(false);
+    }
 
     setTimeout(() => {
       setMode("login");

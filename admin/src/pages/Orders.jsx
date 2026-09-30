@@ -1,81 +1,37 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import OrderFilters from "../components/orders/OrderFilters";
 import AdminOrderCard from "../components/orders/AdminOrderCard";
-
-const initialOrders = [
-  {
-    id: "1",
-    orderNumber: 1024,
-    table: 12,
-    status: "PREPARING",
-    total: 849,
-    time: "2 min ago",
-    items: [
-      {
-        id: 1,
-        quantity: 2,
-        name: "Margherita Pizza",
-        price: 598,
-      },
-      {
-        id: 2,
-        quantity: 1,
-        name: "Coke",
-        price: 99,
-      },
-    ],
-  },
-  {
-    id: "2",
-    orderNumber: 1023,
-    table: 4,
-    status: "PENDING",
-    total: 599,
-    time: "4 min ago",
-    items: [
-      {
-        id: 3,
-        quantity: 1,
-        name: "Classic Burger",
-        price: 399,
-      },
-      {
-        id: 4,
-        quantity: 1,
-        name: "French Fries",
-        price: 200,
-      },
-    ],
-  },
-  {
-    id: "3",
-    orderNumber: 1022,
-    table: 8,
-    status: "READY",
-    total: 749,
-    time: "7 min ago",
-    items: [
-      {
-        id: 5,
-        quantity: 2,
-        name: "Paneer Tikka",
-        price: 749,
-      },
-    ],
-  },
-];
+import BillModal from "../components/orders/BillModal";
+import { adminApi } from "../services/api";
 
 export default function Orders() {
-  const [orders, setOrders] =
-    useState(initialOrders);
+  const [orders, setOrders] = useState([]);
+  const [error, setError] = useState("");
+  const [filter, setFilter] = useState("ALL");
+  const [search, setSearch] = useState("");
+  const [billingOrder, setBillingOrder] = useState(null);
+  const [restaurant, setRestaurant] = useState(null);
 
-  const [filter, setFilter] =
-    useState("ALL");
+  const loadOrders = useCallback(() => {
+    const params = new URLSearchParams({ page: "1", pageSize: "100" });
+    if (filter !== "ALL") params.set("status", filter);
+    if (search) params.set("search", search);
+    return adminApi.orders(params.toString())
+      .then((result) => setOrders((result || []).map(normalizeOrder)))
+      .catch((requestError) => setError(requestError.message));
+  }, [filter, search]);
 
-  const [search, setSearch] =
-    useState("");
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
+
+  useEffect(() => {
+    adminApi.restaurant()
+      .then(setRestaurant)
+      .catch((requestError) => setError(requestError.message));
+  }, []);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -98,24 +54,18 @@ export default function Orders() {
     });
   }, [orders, filter, search]);
 
-  const handleStatusChange = (
-    orderId,
-    status
-  ) => {
-    setOrders((current) =>
-      current.map((order) =>
-        order.id === orderId
-          ? {
-              ...order,
-              status,
-            }
-          : order
-      )
-    );
+  const handleStatusChange = async (orderId, status) => {
+    try {
+      await adminApi.setOrderStatus(orderId, status);
+      await loadOrders();
+    } catch (requestError) {
+      setError(requestError.message);
+    }
   };
 
   return (
     <div className="mx-auto max-w-6xl">
+      {error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</p>}
       <motion.div
         initial={{
           opacity: 0,
@@ -161,6 +111,7 @@ export default function Orders() {
               onStatusChange={
                 handleStatusChange
               }
+              onGenerateBill={setBillingOrder}
             />
           ))}
         </AnimatePresence>
@@ -173,6 +124,37 @@ export default function Orders() {
           </div>
         )}
       </motion.div>
+
+      {billingOrder && (
+        <BillModal
+          key={billingOrder.id}
+          order={billingOrder}
+          restaurant={restaurant}
+          onClose={() => setBillingOrder(null)}
+        />
+      )}
     </div>
   );
+}
+
+function normalizeOrder(order) {
+  return {
+    ...order,
+    table: order.table?.number || order.tableNumber || order.table || "-",
+    total: Math.round((order.totalMinor || 0) / 100),
+    time: new Date(order.placedAt || order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    items: (order.items || []).map((item) => ({
+      ...item,
+      name: item.nameSnapshot || item.name,
+      variantName: item.variantNameSnapshot,
+      lineTotal: Math.round((item.lineTotalMinor || 0) / 100),
+      unitPrice: Math.round((item.unitPriceMinor || 0) / 100),
+      addOns: (item.addOns || []).map((addOn) => ({
+        ...addOn,
+        name: addOn.nameSnapshot || addOn.name,
+        price: Math.round((addOn.priceMinor || 0) / 100),
+      })),
+      price: Math.round((item.lineTotalMinor ?? item.priceMinor ?? item.price ?? 0) / (item.lineTotalMinor ? 100 : 1)),
+    })),
+  };
 }
