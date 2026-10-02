@@ -3,6 +3,8 @@ import { X, Download, Copy, Check } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useState } from "react";
 
+const CUSTOMER_APP_URL = "https://restaurent-app-frontend-n5yh-six.vercel.app";
+
 export default function QRCodeModal({
   table,
   onClose,
@@ -12,8 +14,7 @@ export default function QRCodeModal({
 
   if (!table) return null;
 
-  const qrUrl = table.qrUrl ||
-    `${window.location.origin}/t/${table.qrToken}`;
+  const qrUrl = `${CUSTOMER_APP_URL}/t/${table.qrToken}`;
 
   const copyUrl = async () => {
     await navigator.clipboard.writeText(
