@@ -6,6 +6,7 @@ export default function StatCard({
   subtitle,
   icon,
   trend,
+  loading = false,
 }) {
   return (
     <motion.div
@@ -32,7 +33,7 @@ export default function StatCard({
           </p>
 
           <h3 className="mt-2 text-2xl font-bold text-gray-900">
-            {value}
+            {loading ? <span className="inline-block h-7 w-20 animate-pulse rounded bg-gray-100" aria-label="Loading" /> : value}
           </h3>
         </div>
 
@@ -49,7 +50,7 @@ export default function StatCard({
         )}
 
         <span className="text-xs text-gray-400">
-          {subtitle}
+          {loading ? <span className="inline-block h-3 w-32 animate-pulse rounded bg-gray-100" aria-label="Loading" /> : subtitle}
         </span>
       </div>
     </motion.div>

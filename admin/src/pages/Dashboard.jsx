@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [productAnalytics, setProductAnalytics] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([adminApi.dashboard(), adminApi.productAnalytics()])
@@ -29,7 +30,8 @@ export default function Dashboard() {
         setProductAnalytics(analyticsResult);
         setSelectedMonth(analyticsResult?.monthlySales?.at(-1)?.month || "");
       })
-      .catch((requestError) => setError(requestError.message));
+      .catch((requestError) => setError(requestError.message))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -68,6 +70,7 @@ export default function Dashboard() {
           value={summary.todayOrderCount ?? 0}
           subtitle="Orders created today"
           icon={<ShoppingBag size={21} />}
+          loading={loading}
         />
 
         <StatCard
@@ -75,6 +78,7 @@ export default function Dashboard() {
           value={summary.pendingOrders ?? 0}
           subtitle="Need attention"
           icon={<Clock3 size={21} />}
+          loading={loading}
         />
 
         <StatCard
@@ -82,6 +86,7 @@ export default function Dashboard() {
           value={summary.preparingOrders ?? 0}
           subtitle="In kitchen"
           icon={<ChefHat size={21} />}
+          loading={loading}
         />
 
         <StatCard
@@ -89,13 +94,14 @@ export default function Dashboard() {
           value={`₹${Math.round((summary.todaySalesMinor || 0) / 100)}`}
           subtitle="Non-cancelled orders"
           icon={<IndianRupee size={21} />}
+          loading={loading}
         />
       </div>
 
       {/* Content */}
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <div className="rounded-3xl border border-orange-100 bg-white p-5 shadow-sm">
-          <LiveOrders orders={liveOrders} />
+          <LiveOrders orders={liveOrders} loading={loading} />
         </div>
 
         <div className="rounded-3xl border border-orange-100 bg-white p-5 shadow-sm">
@@ -109,38 +115,33 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="mt-8 flex h-64 items-end gap-3">
-            {sales.slice(-7).map((entry, index, entries) => {
+          <div className="mt-6 flex h-64 items-end gap-3" aria-busy={loading} aria-live="polite">
+            {loading ? (
+              <div role="status" className="flex h-full w-full items-center justify-center gap-2 text-sm text-gray-500">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-orange-200 border-t-[#e86a33]" />
+                Loading sales...
+              </div>
+            ) : sales.length ? sales.slice(-7).map((entry, index, entries) => {
               const max = Math.max(...entries.map((item) => item.totalMinor || 0), 1);
-              const height = ((entry.totalMinor || 0) / max) * 100;
+              const height = Math.max(((entry.totalMinor || 0) / max) * 100, 2);
               return (
                 <motion.div
                   key={entry.date || index}
-                  initial={{
-                    height: 0,
-                  }}
-                  animate={{
-                    height: `${height}%`,
-                  }}
-                  transition={{
-                    delay: index * 0.08,
-                    duration: 0.5,
-                  }}
+                  initial={{ height: 0 }}
+                  animate={{ height: `${height}%` }}
+                  transition={{ delay: index * 0.08, duration: 0.5 }}
+                  title={`${entry.date || "Day"}: ₹${Math.round((entry.totalMinor || 0) / 100)}`}
                   className="flex-1 rounded-t-xl bg-[#f7c59f]"
                 />
               );
-            })}
+            }) : (
+              <p className="w-full pb-20 text-center text-sm text-gray-500">No sales recorded in this period.</p>
+            )}
           </div>
 
-          <div className="mt-3 flex justify-between text-xs text-gray-400">
-            <span>Mon</span>
-            <span>Tue</span>
-            <span>Wed</span>
-            <span>Thu</span>
-            <span>Fri</span>
-            <span>Sat</span>
-            <span>Sun</span>
-          </div>
+          {!loading && sales.length > 0 && <div className="mt-3 flex justify-between text-xs text-gray-400">
+            {sales.slice(-7).map((entry) => <span key={entry.date}>{new Date(`${entry.date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short" })}</span>)}
+          </div>}
         </div>
       </div>
 
@@ -164,6 +165,7 @@ export default function Dashboard() {
               <select
                 value={selectedMonth}
                 onChange={(event) => setSelectedMonth(event.target.value)}
+                disabled={loading || !(productAnalytics?.monthlySales || []).length}
                 aria-label="Select sales month"
                 className="rounded-lg border border-orange-100 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#e86a33]"
               >
@@ -180,7 +182,7 @@ export default function Dashboard() {
                   <tr><th className="pb-2 font-medium">Product</th><th className="pb-2 text-right font-medium">Units</th><th className="pb-2 text-right font-medium">Sales</th></tr>
                 </thead>
                 <tbody className="divide-y divide-orange-50">
-                  {(productAnalytics?.monthlySales?.find((month) => month.month === selectedMonth)?.products || []).map((product, index) => (
+                  {!loading && (productAnalytics?.monthlySales?.find((month) => month.month === selectedMonth)?.products || []).map((product, index) => (
                     <tr key={`${product.name}-${index}`}>
                       <td className="max-w-[180px] truncate py-3 font-medium text-gray-700">{product.name}</td>
                       <td className="py-3 text-right text-gray-600">{product.quantity}</td>
@@ -189,9 +191,14 @@ export default function Dashboard() {
                   ))}
                 </tbody>
               </table>
-              {!(productAnalytics?.monthlySales?.find((month) => month.month === selectedMonth)?.products || []).length && (
+              {loading ? (
+                <div role="status" className="flex items-center justify-center gap-2 py-8 text-sm text-gray-500">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-orange-200 border-t-[#e86a33]" />
+                  Loading product sales...
+                </div>
+              ) : !(productAnalytics?.monthlySales?.find((month) => month.month === selectedMonth)?.products || []).length ? (
                 <p className="py-8 text-center text-sm text-gray-500">No product sales recorded for this month.</p>
-              )}
+              ) : null}
             </div>
           </section>
 

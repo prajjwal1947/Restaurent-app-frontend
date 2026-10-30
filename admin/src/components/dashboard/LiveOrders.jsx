@@ -2,65 +2,7 @@ import { motion } from "framer-motion";
 
 import OrderCard from "./OrderCard";
 
-const orders = [
-  {
-    id: 1,
-    orderNumber: 1024,
-    table: 12,
-    status: "PREPARING",
-    total: 849,
-    time: "2 min ago",
-    items: [
-      {
-        id: 1,
-        quantity: 2,
-        name: "Margherita Pizza",
-      },
-      {
-        id: 2,
-        quantity: 1,
-        name: "Coke",
-      },
-    ],
-  },
-  {
-    id: 2,
-    orderNumber: 1023,
-    table: 4,
-    status: "PENDING",
-    total: 599,
-    time: "4 min ago",
-    items: [
-      {
-        id: 3,
-        quantity: 1,
-        name: "Classic Burger",
-      },
-      {
-        id: 4,
-        quantity: 1,
-        name: "French Fries",
-      },
-    ],
-  },
-  {
-    id: 3,
-    orderNumber: 1022,
-    table: 8,
-    status: "READY",
-    total: 749,
-    time: "7 min ago",
-    items: [
-      {
-        id: 5,
-        quantity: 2,
-        name: "Paneer Tikka",
-      },
-    ],
-  },
-];
-
-export default function LiveOrders() {
+export default function LiveOrders({ orders = [], loading = false }) {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
@@ -90,12 +32,27 @@ export default function LiveOrders() {
       </div>
 
       <div className="space-y-3">
-        {orders.map((order) => (
+        {loading ? (
+          <div role="status" className="space-y-3 py-2" aria-label="Loading live orders">
+            {[0, 1, 2].map((item) => (
+              <div key={item} className="animate-pulse rounded-2xl border border-gray-100 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="h-4 w-28 rounded bg-gray-100" />
+                  <div className="h-5 w-20 rounded-full bg-gray-100" />
+                </div>
+                <div className="mt-4 h-3 w-3/4 rounded bg-gray-100" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-gray-100" />
+              </div>
+            ))}
+          </div>
+        ) : orders.length ? orders.map((order) => (
           <OrderCard
             key={order.id}
             order={order}
           />
-        ))}
+        )) : (
+          <p className="py-10 text-center text-sm text-gray-500">No live orders right now.</p>
+        )}
       </div>
     </div>
   );
