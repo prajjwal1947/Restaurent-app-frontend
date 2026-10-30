@@ -12,7 +12,15 @@ import AnalyticsAssistant from "../components/dashboard/AnalyticsAssistant";
 import { adminApi } from "../services/api";
 import { useEffect, useState } from "react";
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 export default function Dashboard() {
+  const [greeting, setGreeting] = useState(getGreeting);
   const [summary, setSummary] = useState({});
   const [liveOrders, setLiveOrders] = useState([]);
   const [sales, setSales] = useState([]);
@@ -20,6 +28,11 @@ export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => setGreeting(getGreeting()), 60_000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     Promise.all([adminApi.dashboard(), adminApi.productAnalytics()])
@@ -54,7 +67,7 @@ export default function Dashboard() {
         </p>
 
         <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
-          Good evening 👋
+          {greeting} 👋
         </h1>
 
         <p className="mt-1 text-gray-500">
