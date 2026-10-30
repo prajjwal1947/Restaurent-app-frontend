@@ -88,6 +88,7 @@ All routes require authentication. `PATCH` requires `OWNER` or `MANAGER`.
 
 - `GET /restaurant`: returns the restaurant object.
 - `PATCH /restaurant`: accepts any of `name`, `tagline`, `email`, `phone`, `address`, `city`, `currency`, `timezone`.
+- Local-context settings also accept `latitude` and `longitude` as numbers (or both `null` to clear location), and `contextRadiusKm` as an integer from 1 to 50. Coordinates must be a pair within valid geographic bounds. `timezone` must be a valid IANA timezone.
 - `POST /restaurant/logo/upload`: multipart form field `file`; returns the updated restaurant with `logoUrl`.
 
 ## Menu
@@ -189,6 +190,55 @@ All routes require authentication.
 - `GET /dashboard/sales?from=ISO_DATE&to=ISO_DATE&interval=day`: returns daily sales entries with `date`, `totalMinor`, and `orderCount`.
 - `GET /dashboard/live-orders`: returns active orders.
 - `GET /dashboard/product-analytics`: returns last-seven-day product sellers, six months of product sales, and a next-day prep estimate based on the previous four matching weekdays. Cancelled orders are excluded.
+- `GET /dashboard/insights`: returns the signed-in admin's latest saved assistant messages and whether Gemini is configured.
+- `GET /dashboard/insights/summary`: returns restaurant intelligence: seven-day best sellers, thirty-day most/least ordered products, daily sales, yesterday's same-weekday comparison, customer star ratings, prep starting quantities, promotion candidates and demand-decline warnings. No model request is needed.
+- `POST /dashboard/insights` body: `{ "question": "Which products are trending this week?" }`; returns a grounded analytics answer, a refreshed `intelligence` summary, and its mode (`gemini`, `local`, or `local-fallback`). Questions are limited to 500 characters and rate-limited.
+
+The assistant summarizes non-cancelled orders from the last 60 days, stores restaurant-scoped evidence and per-admin chat history in Postgres, and uses pgvector cosine retrieval when Gemini is configured. Apply the backend migrations before using the assistant; the migration enables the `vector` extension and adds its context and chat tables. Set `GEMINI_API_KEY` in the backend environment to enable Gemini embeddings and chat. `GEMINI_CHAT_MODEL` and `GEMINI_EMBEDDING_MODEL` can optionally override the defaults. Without a key, or during provider failures, the API responds with question-specific deterministic insights. Unchanged evidence reuses its existing embeddings.
+
+### Intelligence Evidence
+
+- Sales comparisons use complete calendar days in the restaurant timezone and exclude cancelled orders. Order sales include order-level adjustments; product sales use recorded line totals.
+- The prep plan uses up to six prior matching weekdays with recorded restaurant trading activity. Dates before an item's introduction and days without any restaurant orders are excluded; zero item sales on a recorded trading day are included. At least three samples are required for a quantity recommendation. The average is rounded up without an invented growth buffer. Low/high values describe observed history, not a prediction interval. The dashboard uses this plan instead of the legacy four-weekday estimate.
+- Least-ordered candidates must be currently available and at least 30 days old. Demand-decline warnings require a decrease of at least 30% from a previous week with at least five units. These are batch-size review signals, not measured food waste.
+- Promotion candidates require availability, recorded sales, and at least three product ratings averaging 4/5 or higher. This does not establish profitability or guarantee promotion uplift.
+- Reviews currently contain star ratings only. Written reviews, stable customer identities, inventory, prepared/leftover quantities, costs, opening schedules, and historical stockouts are not recorded. The assistant must not invent retention lists, actual waste savings, profit, or causal explanations.
+- The dashboard refreshes its evidence every minute, on window focus, after a question, or manually. Each question recomputes evidence and updates changed vector documents. More recorded orders and ratings improve the rolling samples; Gemini is not automatically retrained and its forecasts are not guaranteed to become more accurate.
+
+### Weather, Events And Nearby Promotions
+
+The `localContext` field in intelligence summaries includes restaurant location/radius, sourced weather, event-provider coverage, nearby activities, and the latest 100 owner-recorded activities. Set the restaurant coordinates, radius and timezone in Admin Settings. Location is explicit; neither a city name nor the browser's location is silently treated as the restaurant location.
+
+- Open-Meteo supplies daily temperature highs, precipitation and weather codes for the past eight days and next eight days. Past dates are labeled model estimates, not on-site observations. Results use restaurant-local dates. The public endpoint is suitable for local/non-commercial use under the provider's terms; commercial deployments need the appropriate Open-Meteo plan. Set backend `OPEN_METEO_API_KEY` to use its customer endpoint. Attribution is shown in the dashboard.
+- Optional backend `TICKETMASTER_API_KEY` enables event discovery using the configured radius and geohash. Get a key at https://developer.ticketmaster.com/. Listed venue coordinates are checked against the radius; cancelled/postponed events and out-of-window listings are excluded. The first 100 provider listings are considered. Coverage varies, particularly for community events and historical dates; an empty feed is not proof that no event occurred.
+- Nearby promotions and community events can be owner-recorded with an inclusive start/end date, place, coordinates and optional HTTPS source URL. Their source is labeled `Owner recorded`, not automatically verified. No competing-business offers are fabricated or scraped.
+- Provider snapshots are persisted and reused for up to 30 minutes, with failed fetches retried after 5 minutes. Coordinate, radius, timezone or date-window changes invalidate the cache. Source timestamps and unavailable/unconfigured states remain visible.
+- The sales explanation compares context for yesterday and its previous matching weekday. Evidence also reaches the assistant's vector context. Weather and overlapping activity are possible associations, not proven causes; they do not add unsupported demand multipliers to prep recommendations.
+
+All activity endpoints require authentication and enforce restaurant isolation. Writes require `OWNER` or `MANAGER`:
+
+- `GET /dashboard/insights/local-activities`: latest 100 owner-recorded entries.
+- `POST /dashboard/insights/local-activities`: create an entry.
+- `PATCH /dashboard/insights/local-activities/:activityId`: replace the entry's editable fields.
+- `DELETE /dashboard/insights/local-activities/:activityId`: delete an entry.
+
+Create/update body:
+
+```json
+{
+  "kind": "PROMOTION",
+  "scope": "nearby",
+  "title": "Lunch offer",
+  "placeName": "Neighbor cafe",
+  "startsOn": "2026-10-23",
+  "endsOn": "2026-10-25",
+  "latitude": 19.077,
+  "longitude": 72.878,
+  "sourceUrl": "https://example.com/offer"
+}
+```
+
+`kind` is `EVENT` or `PROMOTION`; `scope` is `restaurant` or `nearby`. Nearby entries require venue coordinates. `sourceUrl` is optional or null. Apply backend migration `20261023120000_local_context` before using these fields and tables. Provider keys belong only in the backend environment.
 
 ## Public customer ordering
 

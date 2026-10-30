@@ -3,7 +3,7 @@ import { X, Download, Copy, Check } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useState } from "react";
 
-const CUSTOMER_APP_URL = "https://restaurent-app-frontend-n5yh-six.vercel.app";
+const CUSTOMER_APP_URL = import.meta.env.VITE_CUSTOMER_APP_URL || "https://restaurent-app-frontend-n5yh-six.vercel.app";
 
 export default function QRCodeModal({
   table,
@@ -14,7 +14,7 @@ export default function QRCodeModal({
 
   if (!table) return null;
 
-  const qrUrl = `${CUSTOMER_APP_URL}/t/${table.qrToken}`;
+  const qrUrl = getCustomerUrl(table);
 
   const copyUrl = async () => {
     await navigator.clipboard.writeText(
@@ -162,4 +162,17 @@ export default function QRCodeModal({
       </motion.div>
     </AnimatePresence>
   );
+}
+
+function getCustomerUrl(table) {
+  const fallbackUrl = () => new URL(`/t/${encodeURIComponent(table.qrToken)}`, CUSTOMER_APP_URL).toString();
+  if (table.qrUrl) {
+    try {
+      const url = new URL(table.qrUrl);
+      if (["http:", "https:"].includes(url.protocol) && !url.hostname.includes(",")) return url.toString();
+    } catch {
+      return fallbackUrl();
+    }
+  }
+  return fallbackUrl();
 }

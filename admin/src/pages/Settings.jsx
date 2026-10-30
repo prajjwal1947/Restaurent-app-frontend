@@ -24,6 +24,13 @@ const readAcceptingOrders = () => {
 export default function Settings() {
 	const [restaurantName, setRestaurantName] = useState("");
 	const [restaurantEmail, setRestaurantEmail] = useState("");
+	const [address, setAddress] = useState("");
+	const [city, setCity] = useState("");
+	const [latitude, setLatitude] = useState("");
+	const [longitude, setLongitude] = useState("");
+	const [contextRadiusKm, setContextRadiusKm] = useState("3");
+	const [timezone, setTimezone] = useState("Asia/Kolkata");
+	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState("");
 
 	const [serviceCharge, setServiceCharge] =
@@ -43,6 +50,12 @@ export default function Settings() {
 			.then((restaurant) => {
 				setRestaurantName(restaurant.name || "");
 				setRestaurantEmail(restaurant.email || "");
+				setAddress(restaurant.address || "");
+				setCity(restaurant.city || "");
+				setLatitude(restaurant.latitude == null ? "" : String(restaurant.latitude));
+				setLongitude(restaurant.longitude == null ? "" : String(restaurant.longitude));
+				setContextRadiusKm(String(restaurant.contextRadiusKm ?? 3));
+				setTimezone(restaurant.timezone || "Asia/Kolkata");
 			})
 			.catch((requestError) => setError(requestError.message));
 	}, []);
@@ -51,14 +64,26 @@ export default function Settings() {
 		useState(false);
 
 	const handleSave = async () => {
+		setError("");
+		if ((latitude.trim() === "") !== (longitude.trim() === "")) {
+			setError("Enter both latitude and longitude, or leave both empty.");
+			return;
+		}
+		setSaving(true);
 		try {
 			await adminApi.updateRestaurant({
 				name: restaurantName,
 				email: restaurantEmail,
+				address, city, timezone,
+				latitude: latitude.trim() === "" ? null : Number(latitude),
+				longitude: longitude.trim() === "" ? null : Number(longitude),
+				contextRadiusKm: Number(contextRadiusKm),
 			});
 		} catch (requestError) {
 			setError(requestError.message);
 			return;
+		} finally {
+			setSaving(false);
 		}
 		localStorage.setItem(
 			ACCEPTING_ORDERS_KEY,
@@ -113,10 +138,11 @@ export default function Settings() {
 					whileHover={{ y: -2 }}
 					whileTap={{ scale: 0.97 }}
 					onClick={handleSave}
+					disabled={saving}
 					className="flex items-center justify-center gap-2 rounded-2xl bg-[#e86a33] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-orange-100"
 				>
 					<Save size={18} />
-					{saved ? "Saved" : "Save Changes"}
+					{saving ? "Saving..." : saved ? "Saved" : "Save Changes"}
 				</motion.button>
 			</motion.div>
 
@@ -152,6 +178,20 @@ export default function Settings() {
 								className="w-full rounded-xl border border-orange-100 bg-white px-3 py-2.5 outline-none focus:border-[#e86a33]"
 							/>
 						</label>
+					</div>
+				</SettingSection>
+
+				<SettingSection
+					title="Location & Local Context"
+					description="Restaurant coordinates, local timezone and nearby search radius."
+				>
+					<div className="grid gap-4 sm:grid-cols-2">
+						<label className="text-sm"><span className="mb-1 block font-medium text-gray-700">Address</span><input value={address} onChange={(event) => setAddress(event.target.value)} className="w-full rounded-lg border border-orange-100 px-3 py-2.5 outline-none focus:border-[#e86a33]" /></label>
+						<label className="text-sm"><span className="mb-1 block font-medium text-gray-700">City</span><input value={city} onChange={(event) => setCity(event.target.value)} className="w-full rounded-lg border border-orange-100 px-3 py-2.5 outline-none focus:border-[#e86a33]" /></label>
+						<label className="text-sm"><span className="mb-1 block font-medium text-gray-700">Latitude</span><input type="number" min="-90" max="90" step="any" value={latitude} onChange={(event) => setLatitude(event.target.value)} placeholder="e.g. 19.0760" className="w-full rounded-lg border border-orange-100 px-3 py-2.5 outline-none focus:border-[#e86a33]" /></label>
+						<label className="text-sm"><span className="mb-1 block font-medium text-gray-700">Longitude</span><input type="number" min="-180" max="180" step="any" value={longitude} onChange={(event) => setLongitude(event.target.value)} placeholder="e.g. 72.8777" className="w-full rounded-lg border border-orange-100 px-3 py-2.5 outline-none focus:border-[#e86a33]" /></label>
+						<label className="text-sm"><span className="mb-1 block font-medium text-gray-700">Nearby radius (km)</span><input type="number" min="1" max="50" step="1" value={contextRadiusKm} onChange={(event) => setContextRadiusKm(event.target.value)} className="w-full rounded-lg border border-orange-100 px-3 py-2.5 outline-none focus:border-[#e86a33]" /></label>
+						<label className="text-sm"><span className="mb-1 block font-medium text-gray-700">IANA timezone</span><input value={timezone} onChange={(event) => setTimezone(event.target.value)} placeholder="Asia/Kolkata" className="w-full rounded-lg border border-orange-100 px-3 py-2.5 outline-none focus:border-[#e86a33]" /></label>
 					</div>
 				</SettingSection>
 

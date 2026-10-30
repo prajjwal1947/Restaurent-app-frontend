@@ -3,13 +3,12 @@ import {
   Clock3,
   ChefHat,
   IndianRupee,
-  TrendingUp,
-  PackageCheck,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
 import StatCard from "../components/dashboard/StatCard";
 import LiveOrders from "../components/dashboard/LiveOrders";
+import AnalyticsAssistant from "../components/dashboard/AnalyticsAssistant";
 import { adminApi } from "../services/api";
 import { useEffect, useState } from "react";
 
@@ -145,45 +144,18 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <AnalyticsAssistant />
+
       <section className="mt-8" aria-labelledby="product-analytics-heading">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-[#e86a33]">Demand planning</p>
-            <h2 id="product-analytics-heading" className="mt-1 text-2xl font-bold text-gray-900">Product analytics</h2>
+            <h2 id="product-analytics-heading" className="mt-1 text-2xl font-bold text-gray-900">Monthly product history</h2>
           </div>
           <p className="text-xs text-gray-500">Based on non-cancelled orders · last 6 months</p>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-2">
-          <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm" aria-labelledby="weekly-sellers-heading">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-[#e86a33]"><TrendingUp size={19} /></span>
-              <div>
-                <h3 id="weekly-sellers-heading" className="font-semibold text-gray-900">Best sellers · last 7 days</h3>
-                <p className="text-xs text-gray-500">Ranked by units sold</p>
-              </div>
-            </div>
-            <div className="mt-5 space-y-4">
-              {(productAnalytics?.weeklyBestSellers || []).length ? (
-                productAnalytics.weeklyBestSellers.map((product, index, products) => {
-                  const maxQuantity = Math.max(...products.map((entry) => entry.quantity), 1);
-                  return (
-                    <div key={`${product.name}-${index}`}>
-                      <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
-                        <span className="truncate font-medium text-gray-700">{index + 1}. {product.name}</span>
-                        <span className="shrink-0 text-gray-500">{product.quantity} sold · ₹{Math.round(product.revenueMinor / 100)}</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-orange-50">
-                        <div className="h-full rounded-full bg-[#e86a33]" style={{ width: `${(product.quantity / maxQuantity) * 100}%` }} />
-                      </div>
-                    </div>
-                  );
-                })
-              ) : <p className="py-8 text-center text-sm text-gray-500">No product sales recorded in the last 7 days.</p>}
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm" aria-labelledby="monthly-sales-heading">
+        <div className="grid gap-5">
+          <section className="min-w-0 rounded-2xl border border-orange-100 bg-white p-5 shadow-sm" aria-labelledby="monthly-sales-heading">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 id="monthly-sales-heading" className="font-semibold text-gray-900">Product sales by month</h3>
@@ -223,36 +195,9 @@ export default function Dashboard() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm xl:col-span-2" aria-labelledby="prep-forecast-heading">
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-700"><PackageCheck size={19} /></span>
-              <div>
-                <h3 id="prep-forecast-heading" className="font-semibold text-gray-900">Tomorrow’s prep estimate</h3>
-                <p className="mt-1 text-xs text-gray-500">
-                  Average sales on the previous four matching weekdays. Use as a planning guide, not a guaranteed demand prediction.
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {(productAnalytics?.prepForecast || []).map((product) => (
-                <div key={product.itemId} className="flex items-center justify-between gap-3 border-b border-orange-50 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-700">{product.name}</p>
-                    <p className="text-xs text-gray-500">Avg. {product.averageQuantity} per matching day</p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <strong className="text-lg text-gray-900">{product.forecastQuantity}</strong>
-                    <p className="text-[10px] text-gray-500">to prep</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {!(productAnalytics?.prepForecast || []).length && (
-              <p className="py-8 text-center text-sm text-gray-500">There isn’t enough product sales history to estimate tomorrow’s prep yet.</p>
-            )}
-          </section>
         </div>
       </section>
+
     </div>
   );
 }
