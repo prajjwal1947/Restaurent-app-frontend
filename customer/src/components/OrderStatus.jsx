@@ -72,23 +72,24 @@ export default function OrderStatus({
   onRate,
   submittingOrderItemRatingId,
   onRateOrderItem,
+  onServiceRequest,
 }) {
-  const [waiterCalled, setWaiterCalled] =
-    useState(false);
+  const [requests, setRequests] =
+    useState({ WAITER: "idle", BILL: "idle" });
 
   const currentMessage =
     statusMessages[currentStep] ||
     statusMessages[1];
 
-  const handleCallWaiter = () => {
-    setWaiterCalled(true);
-
-    // TODO: Replace local state with a server action.
-    // Future WebSocket integration:
-    // 1) Ensure socket is connected for this table/session.
-    // 2) Emit an event like: "table:call_waiter" with { orderNumber, tableNumber }.
-    // 3) Listen for acknowledgment and update UI based on server response.
-    // 4) Handle reconnect/retry so the request is not lost if network drops.
+  const sendRequest = async (type) => {
+    if (requests[type] === "sending" || requests[type] === "sent") return;
+    setRequests((current) => ({ ...current, [type]: "sending" }));
+    try {
+      await onServiceRequest(type);
+      setRequests((current) => ({ ...current, [type]: "sent" }));
+    } catch {
+      setRequests((current) => ({ ...current, [type]: "error" }));
+    }
   };
 
   return (
@@ -345,17 +346,34 @@ export default function OrderStatus({
         <div className="status-actions">
           <button
             className={
-              waiterCalled ? "called" : ""
+              requests.WAITER === "sent" ? "called" : ""
             }
-            onClick={handleCallWaiter}
+            disabled={requests.WAITER === "sending" || requests.WAITER === "sent"}
+            onClick={() => sendRequest("WAITER")}
           >
-            {waiterCalled
+            {requests.WAITER === "sent"
               ? "✓ Waiter Called"
-              : "Call Waiter"}
+              : requests.WAITER === "sending"
+                ? "Calling..."
+                : requests.WAITER === "error"
+                  ? "Couldn't send · Try again"
+                  : "Call Waiter"}
           </button>
 
-          <button>
-            Request Bill
+          <button
+            className={
+              requests.BILL === "sent" ? "called" : ""
+            }
+            disabled={requests.BILL === "sending" || requests.BILL === "sent"}
+            onClick={() => sendRequest("BILL")}
+          >
+            {requests.BILL === "sent"
+              ? "✓ Bill Requested"
+              : requests.BILL === "sending"
+                ? "Requesting..."
+                : requests.BILL === "error"
+                  ? "Couldn't send · Try again"
+                  : "Request Bill"}
           </button>
         </div>
       </div>

@@ -30,6 +30,8 @@ function applyBranding(restaurant) {
   root.style.setProperty("--brand-end", end);
   root.style.setProperty("--brand-gradient", `linear-gradient(125deg, ${start}, ${end})`);
   root.style.setProperty("--brand-foreground", foreground);
+  const name = restaurant?.branding?.brandName || restaurant?.name;
+  document.title = name ? `🍽️ ${name} · Admin` : "🍽️ Restaurant Admin";
 }
 
 export function RestaurantBrandingProvider({ children }) {

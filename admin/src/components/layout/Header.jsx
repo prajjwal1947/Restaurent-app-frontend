@@ -18,14 +18,25 @@ import {
 import { useNavigate } from "react-router-dom";
 import { adminApi, clearAuth, getStoredUser } from "../../services/api";
 import { useRestaurantBranding } from "../../context/BrandingStore";
+import NotificationPanel from "./NotificationPanel";
 
-export default function Header({ onMenuClick }) {
+const NO_NOTIFICATIONS = { items: [], unreadCount: 0 };
+
+export default function Header({
+  onMenuClick,
+  soundEnabled = true,
+  onToggleSound,
+  notifications = NO_NOTIFICATIONS,
+}) {
   const navigate = useNavigate();
   const { restaurant } = useRestaurantBranding();
 
   const dropdownRef = useRef(null);
+  const notificationRef = useRef(null);
 
   const [profileOpen, setProfileOpen] =
+    useState(false);
+  const [notificationsOpen, setNotificationsOpen] =
     useState(false);
 
   const storedUser = getStoredUser();
@@ -53,6 +64,12 @@ export default function Header({ onMenuClick }) {
         )
       ) {
         setProfileOpen(false);
+      }
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      ) {
+        setNotificationsOpen(false);
       }
     };
 
@@ -97,12 +114,46 @@ export default function Header({ onMenuClick }) {
       </div>
 
       <div className="ml-auto flex items-center gap-3">
-        {/* Notification */}
-        <button className="relative rounded-xl p-2.5 text-gray-600 transition hover:bg-orange-50">
-          <Bell size={20} />
+        {/* Notifications */}
+        <div ref={notificationRef} className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              if (!notificationsOpen) {
+                setProfileOpen(false);
+                notifications.markAllRead?.();
+              }
+              setNotificationsOpen((current) => !current);
+            }}
+            aria-expanded={notificationsOpen}
+            aria-label={
+              notifications.unreadCount > 0
+                ? `Notifications, ${notifications.unreadCount} unread`
+                : "Notifications"
+            }
+            className="relative rounded-xl p-2.5 text-gray-600 transition hover:bg-orange-50"
+          >
+            <Bell size={20} />
 
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#e86a33]" />
-        </button>
+            {notifications.unreadCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#e86a33] px-1 text-[10px] font-bold text-white">
+                {notifications.unreadCount > 9 ? "9+" : notifications.unreadCount}
+              </span>
+            )}
+          </button>
+
+          <NotificationPanel
+            open={notificationsOpen}
+            items={notifications.items}
+            soundEnabled={soundEnabled}
+            onToggleSound={onToggleSound}
+            onResolve={notifications.resolveRequest}
+            onSelect={() => {
+              setNotificationsOpen(false);
+              navigate("/orders");
+            }}
+          />
+        </div>
 
         {/* Profile */}
         <div

@@ -93,7 +93,7 @@ export default function MenuItemModal({
 
   const selectSuggestedImage = (suggestion) => {
     setImage(suggestion.url);
-    setImageSource("Wikimedia Commons");
+    setImageSource(suggestion.source || "Suggested image");
   };
 
   const clearImage = () => {
@@ -404,8 +404,8 @@ export default function MenuItemModal({
                     {name.trim().length < 2
                       ? "Enter a dish name to search related images."
                       : searchingImages && imageSearchQuery === name.trim()
-                        ? "Searching Wikimedia Commons..."
-                        : `${currentImageSuggestions.length} image suggestions from Wikimedia Commons`}
+                        ? "Searching TheMealDB, Wikipedia and Wikimedia Commons..."
+                        : `${currentImageSuggestions.length} image suggestions from TheMealDB, Wikipedia and Wikimedia Commons`}
                   </p>
 
                   {currentImageSearchError && (

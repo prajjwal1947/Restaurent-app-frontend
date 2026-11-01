@@ -130,6 +130,11 @@ export const adminApi = {
   tables: (params = "") => apiRequest(`/tables${params ? `?${params}` : ""}`),
   createTable: (body) => apiRequest("/tables", { method: "POST", body }),
   orders: (params = "") => apiRequest(`/orders${params ? `?${params}` : ""}`),
+  pollOrders: () => apiRequest("/orders?page=1&pageSize=20", { background: true }),
+  pollServiceRequests: () => apiRequest("/service-requests", { background: true }),
+  resolveServiceRequest: (id) => apiRequest(`/service-requests/${encodeURIComponent(id)}/resolve`, {
+    method: "PATCH", background: true,
+  }),
   setOrderStatus: (id, status) => apiRequest(`/orders/${id}/status`, {
     method: "PATCH", body: { status },
   }),

@@ -66,6 +66,10 @@ export const createPublicOrder = (token, body, key) => request(`/public/tables/$
   body,
 });
 export const getPublicOrder = (id) => request(`/public/orders/${encodeURIComponent(id)}`, { background: true });
+export const createServiceRequest = (token, type) => request(
+  `/public/tables/${encodeURIComponent(token)}/service-requests`,
+  { method: "POST", body: { type } }
+);
 export const ratePublicOrder = (token, id, rating) => request(
   `/public/tables/${encodeURIComponent(token)}/orders/${encodeURIComponent(id)}/rating`,
   { method: "POST", body: { rating } }

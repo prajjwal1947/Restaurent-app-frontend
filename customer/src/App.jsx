@@ -10,7 +10,7 @@ import CartDrawer from "./components/CartDrawer";
 import OrderConfirmation from "./components/OrderConfirmation";
 import OrderStatus from "./components/OrderStatus";
 import OrderHistory from "./components/OrderHistory";
-import { createPublicOrder, getPublicMenu, getPublicOrder, getPublicOrderHistory, getPublicTrending, getTableContext, ratePublicOrder, ratePublicOrderItem, resolveMediaUrl } from "./services/api";
+import { createPublicOrder, createServiceRequest, getPublicMenu, getPublicOrder, getPublicOrderHistory, getPublicTrending, getTableContext, ratePublicOrder, ratePublicOrderItem, resolveMediaUrl } from "./services/api";
 
 export default function App() {
   const tableToken = window.location.pathname.match(/^\/t\/([^/]+)/)?.[1];
@@ -79,6 +79,10 @@ export default function App() {
       .catch((requestError) => setError(requestError.message))
       .finally(() => setLoading(false));
   }, [tableToken]);
+
+  useEffect(() => {
+    if (restaurant) document.title = `🍽️ ${restaurantDisplayName} · Menu`;
+  }, [restaurant, restaurantDisplayName]);
 
   useEffect(() => {
     const branding = restaurant?.branding;
@@ -191,6 +195,8 @@ export default function App() {
     }
   };
 
+  const requestService = (type) => createServiceRequest(tableToken, type);
+
   const placeOrder = async () => {
     if (placingOrder || !tableToken || cart.length === 0) return;
     setPlacingOrder(true);
@@ -236,6 +242,7 @@ export default function App() {
       onRate={rateOrder}
       submittingOrderItemRatingId={submittingOrderItemRatingId}
       onRateOrderItem={rateOrderItem}
+      onServiceRequest={requestService}
       onBackToMenu={() => {
         setShowOrderStatus(false);
         setOrderPlaced(false);
