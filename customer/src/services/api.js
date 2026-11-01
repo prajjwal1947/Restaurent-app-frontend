@@ -3,6 +3,19 @@ const API_BASE_URL = import.meta.env.DEV
   : "https://restaraunt-app-bakcend.onrender.com/api/v1";
 const API_ORIGIN = new URL(API_BASE_URL).origin;
 
+let pendingRequests = 0;
+const requestListeners = new Set();
+
+export const getPendingRequestCount = () => pendingRequests;
+export function subscribeToRequests(listener) {
+  requestListeners.add(listener);
+  return () => requestListeners.delete(listener);
+}
+
+function notifyRequests() {
+  requestListeners.forEach((listener) => listener());
+}
+
 export function resolveMediaUrl(value) {
   if (!value || typeof value !== "string") return "";
   try {
@@ -13,6 +26,17 @@ export function resolveMediaUrl(value) {
 }
 
 async function request(path, options = {}) {
+  pendingRequests += 1;
+  notifyRequests();
+  try {
+    return await performRequest(path, options);
+  } finally {
+    pendingRequests -= 1;
+    notifyRequests();
+  }
+}
+
+async function performRequest(path, options) {
   const headers = new Headers(options.headers || {});
   if (options.body) headers.set("Content-Type", "application/json");
   const response = await fetch(`${API_BASE_URL}${path}`, {

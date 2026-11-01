@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import OrderFilters from "../components/orders/OrderFilters";
@@ -8,20 +8,34 @@ import { adminApi } from "../services/api";
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
+  const [loadedQuery, setLoadedQuery] = useState(null);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [billingOrder, setBillingOrder] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
+  const latestRequest = useRef(0);
+  const query = JSON.stringify([filter, search]);
+  const loading = loadedQuery !== query;
 
   const loadOrders = useCallback(() => {
+    const requestId = ++latestRequest.current;
     const params = new URLSearchParams({ page: "1", pageSize: "100" });
     if (filter !== "ALL") params.set("status", filter);
     if (search) params.set("search", search);
     return adminApi.orders(params.toString())
-      .then((result) => setOrders((result || []).map(normalizeOrder)))
-      .catch((requestError) => setError(requestError.message));
-  }, [filter, search]);
+      .then((result) => {
+        if (requestId !== latestRequest.current) return;
+        setOrders((result || []).map(normalizeOrder));
+        setError("");
+      })
+      .catch((requestError) => {
+        if (requestId === latestRequest.current) setError(requestError.message);
+      })
+      .finally(() => {
+        if (requestId === latestRequest.current) setLoadedQuery(query);
+      });
+  }, [filter, search, query]);
 
   useEffect(() => {
     loadOrders();
@@ -57,6 +71,7 @@ export default function Orders() {
   const handleStatusChange = async (orderId, status) => {
     try {
       await adminApi.setOrderStatus(orderId, status);
+      setLoadedQuery(null);
       await loadOrders();
     } catch (requestError) {
       setError(requestError.message);
@@ -102,9 +117,11 @@ export default function Orders() {
       <motion.div
         layout
         className="mt-6 space-y-4"
+        aria-busy={loading}
       >
+        {loading && <p role="status" className="py-12 text-center text-gray-500">Loading orders...</p>}
         <AnimatePresence mode="popLayout">
-          {filteredOrders.map((order) => (
+          {!loading && filteredOrders.map((order) => (
             <AdminOrderCard
               key={order.id}
               order={order}
@@ -116,7 +133,7 @@ export default function Orders() {
           ))}
         </AnimatePresence>
 
-        {filteredOrders.length === 0 && (
+        {!loading && !error && filteredOrders.length === 0 && (
           <div className="rounded-3xl border border-orange-100 bg-white p-12 text-center">
             <p className="text-gray-500">
               No orders found.
