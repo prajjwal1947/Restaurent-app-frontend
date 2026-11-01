@@ -57,6 +57,7 @@ async function refreshAccessToken() {
 }
 
 export async function apiRequest(path, options = {}, canRetry = true) {
+  if (options.background) return performRequest(path, options, canRetry);
   pendingRequests += 1;
   notifyRequests();
   try {
@@ -111,7 +112,7 @@ export const adminApi = {
     apiRequest("/dashboard/live-orders"),
   ]),
   productAnalytics: () => apiRequest("/dashboard/product-analytics"),
-  restaurantIntelligence: () => apiRequest("/dashboard/insights/summary"),
+  restaurantIntelligence: () => apiRequest("/dashboard/insights/summary", { background: true }),
   createLocalActivity: (body) => apiRequest("/dashboard/insights/local-activities", { method: "POST", body }),
   updateLocalActivity: (id, body) => apiRequest(`/dashboard/insights/local-activities/${encodeURIComponent(id)}`, { method: "PATCH", body }),
   deleteLocalActivity: (id) => apiRequest(`/dashboard/insights/local-activities/${encodeURIComponent(id)}`, { method: "DELETE" }),

@@ -26,6 +26,7 @@ export function resolveMediaUrl(value) {
 }
 
 async function request(path, options = {}) {
+  if (options.background) return performRequest(path, options);
   pendingRequests += 1;
   notifyRequests();
   try {
@@ -64,7 +65,7 @@ export const createPublicOrder = (token, body, key) => request(`/public/tables/$
   headers: { "Idempotency-Key": key },
   body,
 });
-export const getPublicOrder = (id) => request(`/public/orders/${encodeURIComponent(id)}`);
+export const getPublicOrder = (id) => request(`/public/orders/${encodeURIComponent(id)}`, { background: true });
 export const ratePublicOrder = (token, id, rating) => request(
   `/public/tables/${encodeURIComponent(token)}/orders/${encodeURIComponent(id)}/rating`,
   { method: "POST", body: { rating } }

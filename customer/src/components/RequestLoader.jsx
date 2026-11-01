@@ -16,18 +16,29 @@ export default function RequestLoader() {
         <motion.div
           role="status"
           aria-live="polite"
-          initial={{ opacity: 0, y: -16, scale: 0.92 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -12, scale: 0.95 }}
+          aria-busy="true"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
           style={{
-            position: "fixed", top: 16, left: "50%", x: "-50%", zIndex: 10000,
+            position: "fixed", inset: 0, zIndex: 10000, display: "grid", placeItems: "center",
+            background: `color-mix(in srgb, ${BRAND_START} 12%, transparent)`,
+            backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)",
+            cursor: "progress",
+          }}
+        >
+        <motion.div
+          initial={{ y: -12, scale: 0.92 }}
+          animate={{ y: 0, scale: 1 }}
+          exit={{ y: -8, scale: 0.95 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          style={{
             display: "flex", alignItems: "center", gap: 12, maxWidth: "calc(100vw - 32px)",
-            padding: "8px 20px 8px 8px", borderRadius: 999, pointerEvents: "none",
-            background: "#fffaf5e6", color: "#2f2923", fontWeight: 600, fontSize: 14,
+            padding: "8px 20px 8px 8px", borderRadius: 999,
+            background: "#fffaf5f2", color: "#2f2923", fontWeight: 600, fontSize: 14,
             border: `1px solid color-mix(in srgb, ${BRAND_START} 25%, white)`,
             boxShadow: `0 8px 28px color-mix(in srgb, ${BRAND_START} 28%, transparent)`,
-            backdropFilter: "blur(8px)",
           }}
         >
           <span style={{ position: "relative", display: "grid", placeItems: "center", width: 44, height: 44 }}>
@@ -52,6 +63,7 @@ export default function RequestLoader() {
             </motion.span>
           </span>
           <span>Cooking it up...</span>
+        </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
