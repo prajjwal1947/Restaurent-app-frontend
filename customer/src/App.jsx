@@ -37,6 +37,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [error, setError] = useState("");
+  const restaurantDisplayName = restaurant?.branding?.brandName || restaurant?.name || "Restaurant";
 
   useEffect(() => {
     if (!tableToken) return;
@@ -78,6 +79,26 @@ export default function App() {
       .catch((requestError) => setError(requestError.message))
       .finally(() => setLoading(false));
   }, [tableToken]);
+
+  useEffect(() => {
+    const branding = restaurant?.branding;
+    if (!branding) return;
+    const start = /^#[\da-fA-F]{6}$/.test(branding.gradientStart || "") ? branding.gradientStart : "#e86a33";
+    const end = /^#[\da-fA-F]{6}$/.test(branding.gradientEnd || "") ? branding.gradientEnd : "#f7c59f";
+    const luminance = (hex) => {
+      const channels = hex.slice(1).match(/.{2}/g).map((channel) => parseInt(channel, 16) / 255);
+      const linear = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+    };
+    const values = [start, end].map(luminance);
+    const whiteContrast = Math.min(...values.map((value) => 1.05 / (value + 0.05)));
+    const darkContrast = Math.min(...values.map((value) => (value + 0.05) / 0.05));
+    const root = document.documentElement;
+    root.style.setProperty("--brand-start", start);
+    root.style.setProperty("--brand-end", end);
+    root.style.setProperty("--brand-gradient", `linear-gradient(125deg, ${start}, ${end})`);
+    root.style.setProperty("--brand-foreground", whiteContrast >= darkContrast ? "#ffffff" : "#241d19");
+  }, [restaurant]);
 
   useEffect(() => {
     if (!orderId) return undefined;
@@ -201,7 +222,7 @@ export default function App() {
   if (!tableToken) return <div className="app p-8"><p>Open this menu using a table QR code.</p></div>;
   if (loading) return <div className="app p-8">Loading menu...</div>;
   if (error) return <div className="app p-8"><p>{error}</p></div>;
-  if (showWelcome) return <WelcomeScreen tableNumber={tableNumber} onContinue={() => setShowWelcome(false)} />;
+  if (showWelcome) return <WelcomeScreen tableNumber={tableNumber} restaurantName={restaurantDisplayName} logoUrl={restaurant.branding?.logoUrl || restaurant.logoUrl} onContinue={() => setShowWelcome(false)} />;
   if (orderPlaced && !showOrderStatus) {
     return <OrderConfirmation orderNumber={orderNumber} total={orderTotal} onViewOrder={() => setShowOrderStatus(true)} />;
   }
@@ -242,7 +263,8 @@ export default function App() {
   return (
     <main className="app">
       <MenuHeader
-        restaurantName={restaurant.name}
+        restaurantName={restaurantDisplayName}
+        logoUrl={restaurant.branding?.logoUrl || restaurant.logoUrl}
         tableNumber={tableNumber}
         orderCount={orderHistory.length}
         categories={categories}

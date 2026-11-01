@@ -88,8 +88,11 @@ All routes require authentication. `PATCH` requires `OWNER` or `MANAGER`.
 
 - `GET /restaurant`: returns the restaurant object.
 - `PATCH /restaurant`: accepts any of `name`, `tagline`, `email`, `phone`, `address`, `city`, `currency`, `timezone`.
+- `PATCH /restaurant/branding`: owner/manager can save `{ "brandName": "Harbor Kitchen", "gradientStart": "#154c79", "gradientEnd": "#e8a838" }`. `brandName` is optional, limited to 60 characters, and may be `null` to fall back to the restaurant name. Colors must be 6-digit hex values.
 - Local-context settings also accept `latitude` and `longitude` as numbers (or both `null` to clear location), and `contextRadiusKm` as an integer from 1 to 50. Coordinates must be a pair within valid geographic bounds. `timezone` must be a valid IANA timezone.
-- `POST /restaurant/logo/upload`: multipart form field `file`; returns the updated restaurant with `logoUrl`.
+- `POST /restaurant/logo/upload`: multipart form field `file`; returns the updated restaurant and branding with `logoUrl`.
+
+Restaurant responses include `branding.brandName`, `branding.logoUrl`, `branding.gradientStart`, and `branding.gradientEnd`. If no custom brand name is set, clients display the restaurant name. The public table context endpoint returns these branding fields to the customer menu.
 
 ## Menu
 

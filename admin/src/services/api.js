@@ -5,6 +5,19 @@ const ACCESS_TOKEN_KEY = "admin-access-token";
 const REFRESH_TOKEN_KEY = "admin-refresh-token";
 const USER_KEY = "admin-user";
 
+let pendingRequests = 0;
+const requestListeners = new Set();
+
+export const getPendingRequestCount = () => pendingRequests;
+export function subscribeToRequests(listener) {
+  requestListeners.add(listener);
+  return () => requestListeners.delete(listener);
+}
+
+function notifyRequests() {
+  requestListeners.forEach((listener) => listener());
+}
+
 export function getAccessToken() {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
@@ -44,6 +57,17 @@ async function refreshAccessToken() {
 }
 
 export async function apiRequest(path, options = {}, canRetry = true) {
+  pendingRequests += 1;
+  notifyRequests();
+  try {
+    return await performRequest(path, options, canRetry);
+  } finally {
+    pendingRequests -= 1;
+    notifyRequests();
+  }
+}
+
+async function performRequest(path, options, canRetry) {
   const headers = new Headers(options.headers || {});
   if (options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
@@ -110,4 +134,10 @@ export const adminApi = {
   }),
   restaurant: () => apiRequest("/restaurant"),
   updateRestaurant: (body) => apiRequest("/restaurant", { method: "PATCH", body }),
+  updateBranding: (body) => apiRequest("/restaurant/branding", { method: "PATCH", body }),
+  uploadRestaurantLogo: (file) => {
+    const body = new FormData();
+    body.append("file", file);
+    return apiRequest("/restaurant/logo/upload", { method: "POST", body });
+  },
 };

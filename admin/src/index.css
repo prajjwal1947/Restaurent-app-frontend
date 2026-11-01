@@ -2,12 +2,41 @@
 @import 'tailwindcss';
 
 :root {
+  --brand-start: #e86a33;
+  --brand-end: #f7c59f;
+  --brand-gradient: linear-gradient(125deg, var(--brand-start), var(--brand-end));
+  --brand-foreground: #ffffff;
+  --color-orange-50: color-mix(in srgb, var(--brand-start) 6%, white);
+  --color-orange-100: color-mix(in srgb, var(--brand-start) 12%, white);
+  --color-orange-200: color-mix(in srgb, var(--brand-start) 24%, white);
+  --color-orange-300: color-mix(in srgb, var(--brand-start) 38%, white);
+  --color-orange-500: var(--brand-start);
+  --color-orange-600: color-mix(in srgb, var(--brand-start) 82%, black);
   font-family: 'Manrope', sans-serif;
   color: #2f2923;
   background: #fffaf5;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+[class~="bg-[#e86a33]"] {
+  background-image: var(--brand-gradient);
+  color: var(--brand-foreground);
+}
+
+[class~="text-[#e86a33]"],
+[class~="text-[#bd4e21]"] {
+  color: var(--brand-start);
+}
+
+[class~="border-[#e86a33]"],
+[class~="border-t-[#e86a33]"] {
+  border-color: var(--brand-start);
+}
+
+[class~="accent-[#e86a33]"] {
+  accent-color: var(--brand-start);
 }
 
 * {

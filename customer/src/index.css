@@ -4,6 +4,13 @@
   box-sizing: border-box;
 }
 
+:root {
+  --brand-start: #a85d38;
+  --brand-end: #e4b493;
+  --brand-gradient: linear-gradient(125deg, var(--brand-start), var(--brand-end));
+  --brand-foreground: #ffffff;
+}
+
 html,
 body,
 #root {
@@ -45,6 +52,14 @@ input {
 button {
   border: none;
   cursor: pointer;
+}
+
+.restaurant-header-logo {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  object-fit: cover;
 }
 
 .app {
@@ -107,7 +122,7 @@ button {
 .customer-nav-heading p,
 .customer-nav-label {
   margin: 0;
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -147,7 +162,7 @@ button {
 }
 
 .customer-nav-categories button.active {
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
   font-weight: 700;
 }
 
@@ -169,7 +184,7 @@ button {
 
 .customer-nav-action small {
   min-width: 22px;
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
   text-align: right;
   font-weight: 700;
 }
@@ -195,6 +210,11 @@ button {
   text-align: center;
 }
 
+.restaurant-title .restaurant-header-logo {
+  display: block;
+  margin: 0 auto 5px;
+}
+
 .restaurant-title h2 {
   margin: 0;
 
@@ -209,10 +229,10 @@ button {
   margin-top: 5px;
   padding: 4px 10px;
 
-  border: 1px solid #a85d38;
+  border: 1px solid var(--brand-start, #a85d38);
   border-radius: 20px;
 
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 1px;
@@ -227,7 +247,7 @@ button {
 .eyebrow {
   margin: 0 0 8px;
 
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 
   font-size: 11px;
   font-weight: 700;
@@ -330,7 +350,7 @@ button {
 
 .category.active {
   color: #fff;
-  background: #a85d38;
+  background: var(--brand-start, #a85d38);
 }
 
 /* ---------------- MENU ---------------- */
@@ -417,7 +437,7 @@ button {
 
   border-radius: 50%;
 
-  background: #a85d38;
+  background: var(--brand-start, #a85d38);
   color: white;
 
   box-shadow: 0 5px 15px rgba(84, 44, 25, 0.25);
@@ -450,7 +470,7 @@ button {
 
 .food-info .food-popularity {
   margin: 5px 0 0;
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
   font-size: 11px;
   font-weight: 600;
 }
@@ -509,7 +529,7 @@ button {
 
 .order-history-header p {
   margin: 0 0 4px;
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -599,7 +619,7 @@ button {
   gap: 6px;
   padding: 8px 0 8px 8px;
   background: transparent;
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
   font-size: 12px;
   font-weight: 700;
 }
@@ -651,7 +671,7 @@ button {
   border: 1px solid #cfae9d;
   border-radius: 18px;
 
-  background: #a85d38;
+  background: var(--brand-start, #a85d38);
 
   color: white;
 
@@ -690,7 +710,7 @@ button {
   border-radius: 50%;
 
   background: #fff;
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 
   font-size: 10px;
   font-weight: 700;
@@ -787,7 +807,7 @@ button {
   border: 1px solid #cda991;
   border-radius: 50%;
 
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 
   font-size: 30px;
 }
@@ -809,6 +829,7 @@ button {
   font-weight: 500;
 
   letter-spacing: 2px;
+  overflow-wrap: anywhere;
 }
 
 .table-container {
@@ -820,7 +841,7 @@ button {
 }
 
 .table-container span {
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 
   font-size: 11px;
   letter-spacing: 4px;
@@ -831,7 +852,7 @@ button {
 
   font-family: "Playfair Display", serif;
 
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 
   font-size: 105px;
   line-height: 0.9;
@@ -862,7 +883,7 @@ button {
 
   border-radius: 14px;
 
-  background: #a85d38;
+  background: var(--brand-start, #a85d38);
   color: white;
 
   font-size: 14px;
@@ -998,7 +1019,7 @@ button {
 .details-price {
   margin: 8px 0 0;
 
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 
   font-size: 17px;
   font-weight: 700;
@@ -1111,9 +1132,9 @@ button {
 }
 
 .addon-checkbox.checked {
-  border-color: #a85d38;
+  border-color: var(--brand-start, #a85d38);
 
-  background: #a85d38;
+  background: var(--brand-start, #a85d38);
 }
 
 .details-bottom {
@@ -1174,7 +1195,7 @@ button {
 
   border-radius: 14px;
 
-  background: #a85d38;
+  background: var(--brand-start, #a85d38);
 
   color: white;
 
@@ -1234,7 +1255,7 @@ button {
 .confirmation-eyebrow {
   margin: 0 0 10px;
 
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 
   font-size: 9px;
   font-weight: 700;
@@ -1313,7 +1334,7 @@ button {
 }
 
 .kitchen-animation svg {
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 }
 
 .view-order-button {
@@ -1332,7 +1353,7 @@ button {
 
   border-radius: 14px;
 
-  background: #a85d38;
+  background: var(--brand-start, #a85d38);
 
   color: white;
 
@@ -1361,7 +1382,7 @@ button {
 .status-header p {
   margin: 0 0 8px;
 
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 
   font-size: 9px;
   font-weight: 700;
@@ -1392,7 +1413,7 @@ button {
 
   background: #eadbd0;
 
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 }
 
 .estimated-time {
@@ -1418,7 +1439,7 @@ button {
 }
 
 .estimated-time strong {
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 
   font-size: 14px;
 }
@@ -1474,7 +1495,7 @@ button {
 .order-rating .order-rating-message {
   min-height: 16px;
   margin-top: 7px;
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
   font-weight: 600;
 }
 
@@ -1585,9 +1606,9 @@ button {
 }
 
 .status-step.active .status-icon {
-  border-color: #a85d38;
+  border-color: var(--brand-start, #a85d38);
 
-  background: #a85d38;
+  background: var(--brand-start, #a85d38);
 
   color: white;
 
@@ -1647,7 +1668,7 @@ button {
 
   margin-top: 7px;
 
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 
   font-size: 8px;
   font-weight: 700;
@@ -1713,7 +1734,7 @@ button {
 
   background: transparent;
 
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
 
   font-size: 11px;
   font-weight: 600;
@@ -1753,7 +1774,7 @@ button {
 .cart-screen-header p {
   margin: 0;
 
-  color: #a85d38;
+  color: var(--brand-start, #a85d38);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 1.4px;
@@ -1930,7 +1951,7 @@ button {
   justify-content: space-between;
 
   border-radius: 12px;
-  background: #a85d38;
+  background: var(--brand-start, #a85d38);
   color: #fff;
 
   font-size: 13px;
@@ -2096,7 +2117,18 @@ button {
 
   border-radius: 10px;
 
-  background: #a85d38;
+  background: var(--brand-start, #a85d38);
+}
+
+.category.active,
+.add-button:not(.added),
+.cart-bar,
+.browse-button,
+.details-add-button:not(.success),
+.view-order-button,
+.place-order-button {
+  background-image: var(--brand-gradient);
+  color: var(--brand-foreground);
 }
 
 

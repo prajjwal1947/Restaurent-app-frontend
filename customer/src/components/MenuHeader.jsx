@@ -4,6 +4,7 @@ import { ArrowRight, ClipboardList, Menu, X } from "lucide-react";
 
 export default function MenuHeader({
   restaurantName,
+  logoUrl,
   tableNumber,
   orderCount,
   onOpenOrderHistory,
@@ -29,6 +30,7 @@ export default function MenuHeader({
         </button>
 
         <div className="restaurant-title">
+          {logoUrl && <img className="restaurant-header-logo" src={logoUrl} alt={`${restaurantName} logo`} />}
           <h2>{restaurantName}</h2>
 
           <span>TABLE {tableNumber}</span>

@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
-import { Save } from "lucide-react";
+import { ImagePlus, Save, Upload } from "lucide-react";
 import { useState } from "react";
 import { useEffect } from "react";
 
 import SettingSection from "../components/settings/SettingSection";
 import { adminApi } from "../services/api";
+import { useRestaurantBranding } from "../context/BrandingStore";
 
 const ACCEPTING_ORDERS_KEY =
 	"accepting-orders";
@@ -22,6 +23,7 @@ const readAcceptingOrders = () => {
 };
 
 export default function Settings() {
+	const { refreshRestaurant } = useRestaurantBranding();
 	const [restaurantName, setRestaurantName] = useState("");
 	const [restaurantEmail, setRestaurantEmail] = useState("");
 	const [address, setAddress] = useState("");
@@ -30,6 +32,13 @@ export default function Settings() {
 	const [longitude, setLongitude] = useState("");
 	const [contextRadiusKm, setContextRadiusKm] = useState("3");
 	const [timezone, setTimezone] = useState("Asia/Kolkata");
+	const [brandName, setBrandName] = useState("");
+	const [logoUrl, setLogoUrl] = useState("");
+	const [logoFile, setLogoFile] = useState(null);
+	const [gradientStart, setGradientStart] = useState("#e86a33");
+	const [gradientEnd, setGradientEnd] = useState("#f7c59f");
+	const [logoUploading, setLogoUploading] = useState(false);
+	const [brandingMessage, setBrandingMessage] = useState("");
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState("");
 
@@ -56,6 +65,10 @@ export default function Settings() {
 				setLongitude(restaurant.longitude == null ? "" : String(restaurant.longitude));
 				setContextRadiusKm(String(restaurant.contextRadiusKm ?? 3));
 				setTimezone(restaurant.timezone || "Asia/Kolkata");
+				setBrandName(restaurant.branding?.brandName || "");
+				setLogoUrl(restaurant.branding?.logoUrl || restaurant.logoUrl || "");
+				setGradientStart(restaurant.branding?.gradientStart || "#e86a33");
+				setGradientEnd(restaurant.branding?.gradientEnd || "#f7c59f");
 			})
 			.catch((requestError) => setError(requestError.message));
 	}, []);
@@ -70,15 +83,25 @@ export default function Settings() {
 			return;
 		}
 		setSaving(true);
+		setBrandingMessage("");
 		try {
-			await adminApi.updateRestaurant({
-				name: restaurantName,
-				email: restaurantEmail,
-				address, city, timezone,
-				latitude: latitude.trim() === "" ? null : Number(latitude),
-				longitude: longitude.trim() === "" ? null : Number(longitude),
-				contextRadiusKm: Number(contextRadiusKm),
-			});
+			await Promise.all([
+				adminApi.updateRestaurant({
+					name: restaurantName,
+					email: restaurantEmail,
+					address, city, timezone,
+					latitude: latitude.trim() === "" ? null : Number(latitude),
+					longitude: longitude.trim() === "" ? null : Number(longitude),
+					contextRadiusKm: Number(contextRadiusKm),
+				}),
+				adminApi.updateBranding({
+					brandName: brandName.trim() || null,
+					gradientStart,
+					gradientEnd,
+				}),
+			]);
+			await refreshRestaurant();
+			setBrandingMessage("Brand identity saved.");
 		} catch (requestError) {
 			setError(requestError.message);
 			return;
@@ -104,6 +127,32 @@ export default function Settings() {
 		setTimeout(() => {
 			setSaved(false);
 		}, 1500);
+	};
+
+	const handleLogoUpload = async () => {
+		if (!logoFile) return;
+		setBrandingMessage("");
+		setError("");
+		if (!logoFile.type.startsWith("image/")) {
+			setError("Choose an image file for your logo.");
+			return;
+		}
+		if (logoFile.size > 5 * 1024 * 1024) {
+			setError("Logo images must be 5 MB or smaller.");
+			return;
+		}
+		setLogoUploading(true);
+		try {
+			const updated = await adminApi.uploadRestaurantLogo(logoFile);
+			setLogoUrl(updated.branding?.logoUrl || updated.logoUrl || "");
+			setLogoFile(null);
+			await refreshRestaurant();
+			setBrandingMessage("Restaurant logo updated.");
+		} catch (requestError) {
+			setError(requestError.message);
+		} finally {
+			setLogoUploading(false);
+		}
 	};
 
 	return (
@@ -147,6 +196,56 @@ export default function Settings() {
 			</motion.div>
 
 			<div className="mt-8 space-y-5">
+				<SettingSection
+					title="Brand identity"
+					description="Your logo and two-color gradient appear in the admin and customer menu."
+				>
+					<div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.8fr)]">
+						<div className="space-y-5">
+							<label className="block text-sm">
+								<span className="mb-1 block font-medium text-gray-700">Custom brand name</span>
+								<input value={brandName} maxLength={60} onChange={(event) => setBrandName(event.target.value)} placeholder={restaurantName || "Use restaurant name"} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 outline-none focus:border-[#e86a33]" />
+								<span className="mt-1 block text-xs text-gray-500">Leave empty to use {restaurantName || "your restaurant name"}.</span>
+							</label>
+							<div className="flex items-center gap-4">
+								<div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gray-100 text-gray-500">
+									{logoUrl ? <img src={logoUrl} alt="Restaurant logo preview" className="h-full w-full object-cover" /> : <ImagePlus size={24} />}
+								</div>
+								<div className="min-w-0 flex-1">
+									<label className="block text-sm font-medium text-gray-700" htmlFor="restaurant-logo">Restaurant logo</label>
+									<input id="restaurant-logo" type="file" accept="image/*" onChange={(event) => setLogoFile(event.target.files?.[0] || null)} className="mt-2 block w-full min-w-0 text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-orange-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#e86a33]" />
+									<p className="mt-1 text-xs text-gray-500">PNG, JPG, WebP · 5 MB maximum</p>
+								</div>
+							</div>
+							<div className="flex flex-wrap gap-3">
+								<button type="button" onClick={handleLogoUpload} disabled={!logoFile || logoUploading} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#e86a33] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+									<Upload size={16} /> {logoUploading ? "Uploading..." : "Upload logo"}
+								</button>
+								{logoFile && <span className="self-center max-w-56 truncate text-xs text-gray-500">{logoFile.name}</span>}
+							</div>
+							<div className="grid gap-4 sm:grid-cols-2">
+								<ColorField label="Gradient start" value={gradientStart} onChange={setGradientStart} />
+								<ColorField label="Gradient end" value={gradientEnd} onChange={setGradientEnd} />
+							</div>
+							<div className="flex flex-wrap items-center gap-3">
+								<button type="button" onClick={() => { setGradientStart("#e86a33"); setGradientEnd("#f7c59f"); }} className="min-h-10 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">Reset colors</button>
+								{brandingMessage && <span role="status" className="text-sm text-green-700">{brandingMessage}</span>}
+							</div>
+						</div>
+						<div className="flex min-h-44 flex-col justify-end overflow-hidden rounded-2xl border border-gray-100 bg-white p-4">
+							<p className="mb-3 text-xs font-medium text-gray-500">Customer menu preview</p>
+							<div className="rounded-xl p-4 text-white" style={{ backgroundImage: `linear-gradient(125deg, ${gradientStart}, ${gradientEnd})` }}>
+								<div className="flex items-center gap-3">
+									{logoUrl ? <img src={logoUrl} alt="" className="h-10 w-10 rounded-lg bg-white object-cover" /> : <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20"><ImagePlus size={18} /></div>}
+									<div><p className="text-[10px] font-semibold uppercase">Table 12</p><p className="break-words font-semibold">{brandName.trim() || restaurantName || "Your restaurant"}</p></div>
+								</div>
+								<p className="mt-5 text-lg font-semibold">Chef&apos;s picks</p>
+								<p className="mt-1 text-xs opacity-90">Your menu, with your brand.</p>
+							</div>
+						</div>
+					</div>
+				</SettingSection>
+
 				<SettingSection
 					title="Restaurant Profile"
 					description="Information shown to your team and customers."
@@ -274,6 +373,18 @@ export default function Settings() {
 				</SettingSection>
 			</div>
 		</div>
+	);
+}
+
+function ColorField({ label, value, onChange }) {
+	return (
+		<label className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-gray-200 px-3 py-2.5 text-sm">
+			<span className="min-w-0 truncate font-medium text-gray-700">{label}</span>
+			<span className="flex shrink-0 items-center gap-2">
+				<span className="font-mono text-xs text-gray-500">{value.toUpperCase()}</span>
+				<input type="color" value={value} onChange={(event) => onChange(event.target.value)} aria-label={label} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
+			</span>
+		</label>
 	);
 }
 

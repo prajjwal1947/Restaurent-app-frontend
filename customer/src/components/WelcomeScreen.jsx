@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 
-export default function WelcomeScreen({ tableNumber, onContinue }) {
+export default function WelcomeScreen({ tableNumber, restaurantName, logoUrl, onContinue }) {
   return (
     <motion.div
       className="welcome-screen"
@@ -30,7 +30,7 @@ export default function WelcomeScreen({ tableNumber, onContinue }) {
             delay: 0.5,
           }}
         >
-          ✦
+          {logoUrl ? <img src={logoUrl} alt={`${restaurantName} logo`} className="h-full w-full rounded-full object-cover" /> : "✦"}
         </motion.div>
 
         <motion.p
@@ -47,7 +47,7 @@ export default function WelcomeScreen({ tableNumber, onContinue }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1 }}
         >
-          OLIVE & THYME
+          {restaurantName || "Welcome"}
         </motion.h1>
 
         <motion.div

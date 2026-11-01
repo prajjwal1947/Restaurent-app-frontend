@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { NavLink } from "react-router-dom";
+import { useRestaurantBranding } from "../../context/BrandingStore";
 
 const menuItems = [
   {
@@ -61,6 +62,7 @@ export default function Sidebar({
   open,
   onClose,
 }) {
+  const { restaurant } = useRestaurantBranding();
   const [acceptingOrders, setAcceptingOrders] =
     useState(readAcceptingOrders);
 
@@ -120,17 +122,19 @@ export default function Sidebar({
 
         <div className="mb-10 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#e86a33] text-xl shadow-sm">
-              🍽️
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-[#e86a33] text-xl shadow-sm">
+              {restaurant?.branding?.logoUrl || restaurant?.logoUrl
+                ? <img src={restaurant.branding?.logoUrl || restaurant.logoUrl} alt={`${restaurant.name} logo`} className="h-full w-full object-cover" />
+                : "🍽️"}
             </div>
 
             <div>
               <h1 className="font-bold text-gray-900">
-                DineFlow
+                {restaurant?.branding?.brandName || restaurant?.name || "Restaurant"}
               </h1>
 
               <p className="text-xs text-gray-400">
-                Restaurant
+                Management
               </p>
             </div>
           </div>

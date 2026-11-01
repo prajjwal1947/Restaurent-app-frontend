@@ -4,8 +4,17 @@ import { Outlet } from "react-router-dom";
 
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import { RestaurantBrandingProvider } from "../../context/BrandingContext.jsx";
 
 export default function AdminLayout() {
+  return (
+    <RestaurantBrandingProvider>
+      <AdminLayoutShell />
+    </RestaurantBrandingProvider>
+  );
+}
+
+function AdminLayoutShell() {
   const [sidebarOpen, setSidebarOpen] =
     useState(false);
 

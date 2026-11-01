@@ -17,9 +17,11 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminApi, clearAuth, getStoredUser } from "../../services/api";
+import { useRestaurantBranding } from "../../context/BrandingStore";
 
 export default function Header({ onMenuClick }) {
   const navigate = useNavigate();
+  const { restaurant } = useRestaurantBranding();
 
   const dropdownRef = useRef(null);
 
@@ -33,9 +35,10 @@ export default function Header({ onMenuClick }) {
     storedUser?.email ||
     "admin@restaurant.com";
 
-  const restaurantName =
-    storedUser?.restaurantName ||
-    "Restaurant Manager";
+  const restaurantName = restaurant?.branding?.brandName
+    || restaurant?.name
+    || storedUser?.restaurantName
+    || "Restaurant Manager";
 
   const adminPhoto =
     storedUser?.photoUrl ||
