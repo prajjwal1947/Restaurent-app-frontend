@@ -2,6 +2,23 @@ const API_BASE_URL = import.meta.env.DEV
   ? import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api/v1"
   : "https://restaraunt-app-bakcend.onrender.com/api/v1";
 const API_ORIGIN = new URL(API_BASE_URL).origin;
+const SESSION_KEY = "customer-session-id";
+let memorySessionId;
+
+// Identifies this device so order history shows only its own orders at a shared table.
+function getSessionId() {
+  try {
+    let id = localStorage.getItem(SESSION_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(SESSION_KEY, id);
+    }
+    return id;
+  } catch {
+    memorySessionId ??= crypto.randomUUID();
+    return memorySessionId;
+  }
+}
 
 let pendingRequests = 0;
 const requestListeners = new Set();
@@ -40,6 +57,7 @@ async function request(path, options = {}) {
 async function performRequest(path, options) {
   const headers = new Headers(options.headers || {});
   if (options.body) headers.set("Content-Type", "application/json");
+  headers.set("X-Customer-Session", getSessionId());
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,

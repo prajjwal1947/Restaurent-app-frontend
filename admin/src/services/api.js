@@ -42,7 +42,17 @@ export function clearAuth() {
   localStorage.removeItem(USER_KEY);
 }
 
-async function refreshAccessToken() {
+let refreshInFlight = null;
+
+// Parallel requests that hit an expired token must share one refresh, since refresh tokens rotate.
+function refreshAccessToken() {
+  refreshInFlight ??= requestNewAccessToken().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+
+async function requestNewAccessToken() {
   const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
   if (!refreshToken) return false;
   const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
@@ -129,6 +139,7 @@ export const adminApi = {
   }),
   tables: (params = "") => apiRequest(`/tables${params ? `?${params}` : ""}`),
   createTable: (body) => apiRequest("/tables", { method: "POST", body }),
+  closeTableBill: (id) => apiRequest(`/tables/${encodeURIComponent(id)}/bill/close`, { method: "POST" }),
   orders: (params = "") => apiRequest(`/orders${params ? `?${params}` : ""}`),
   pollOrders: () => apiRequest("/orders?page=1&pageSize=20", { background: true }),
   pollServiceRequests: () => apiRequest("/service-requests", { background: true }),

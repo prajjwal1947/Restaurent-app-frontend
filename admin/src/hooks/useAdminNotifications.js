@@ -20,27 +20,48 @@ export function unlockAudio() {
 }
 
 // Browsers keep audio suspended until the page has had a user gesture.
-export function playOrderChime() {
+// Each note is [frequencyHz, startSeconds, durationSeconds].
+const SOUNDS = {
+  order: {
+    wave: "sine",
+    notes: [[880, 0, 0.42], [1318.5, 0.16, 0.42], [880, 0.5, 0.42], [1318.5, 0.66, 0.42]],
+  },
+  bill: {
+    wave: "triangle",
+    notes: [[659.25, 0, 0.2], [783.99, 0.09, 0.2], [1046.5, 0.18, 0.2], [1318.5, 0.3, 0.6]],
+  },
+  waiter: {
+    wave: "sine",
+    notes: [[987.77, 0, 0.7], [739.99, 0.38, 0.9], [987.77, 1.0, 0.7], [739.99, 1.38, 0.9]],
+  },
+};
+const SOUND_PRIORITY = ["waiter", "bill", "order"];
+
+export function playChimes(kinds) {
   const context = getAudioContext();
   if (!context || context.state !== "running") return false;
-  const start = context.currentTime;
-  [0, 0.5].forEach((repeat) => {
-    [880, 1318.5].forEach((frequency, note) => {
-      const at = start + repeat + note * 0.16;
+  let start = context.currentTime;
+  for (const kind of SOUND_PRIORITY.filter((candidate) => kinds.includes(candidate))) {
+    const { wave, notes } = SOUNDS[kind];
+    for (const [frequency, offset, duration] of notes) {
+      const at = start + offset;
       const oscillator = context.createOscillator();
       const gain = context.createGain();
-      oscillator.type = "sine";
+      oscillator.type = wave;
       oscillator.frequency.value = frequency;
       gain.gain.setValueAtTime(0.0001, at);
       gain.gain.exponentialRampToValueAtTime(0.35, at + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.42);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
       oscillator.connect(gain).connect(context.destination);
       oscillator.start(at);
-      oscillator.stop(at + 0.45);
-    });
-  });
+      oscillator.stop(at + duration + 0.03);
+    }
+    start += Math.max(...notes.map(([, offset, duration]) => offset + duration)) + 0.25;
+  }
   return true;
 }
+
+export const playOrderChime = () => playChimes(["order"]);
 
 function loadReadKeys() {
   try {
@@ -107,7 +128,7 @@ export function useAdminNotifications(soundEnabled) {
 
     const announce = (fresh) => {
       const wantsSound = soundRef.current;
-      const played = wantsSound && playOrderChime();
+      const played = wantsSound && playChimes([...new Set(fresh.map((item) => item.kind))]);
       const created = fresh.map((item) => ({
         id: item.key,
         kind: item.kind,

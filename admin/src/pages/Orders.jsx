@@ -3,27 +3,25 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import OrderFilters from "../components/orders/OrderFilters";
 import AdminOrderCard from "../components/orders/AdminOrderCard";
+import TableOrderGroup from "../components/orders/TableOrderGroup";
 import BillModal from "../components/orders/BillModal";
 import { adminApi } from "../services/api";
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
-  const [loadedQuery, setLoadedQuery] = useState(null);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [billingOrder, setBillingOrder] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
   const latestRequest = useRef(0);
-  const query = JSON.stringify([filter, search]);
-  const loading = loadedQuery !== query;
+  const loading = !loaded;
 
+  // Filtering happens in the browser so a table's bill always covers all of its orders.
   const loadOrders = useCallback(() => {
     const requestId = ++latestRequest.current;
-    const params = new URLSearchParams({ page: "1", pageSize: "100" });
-    if (filter !== "ALL") params.set("status", filter);
-    if (search) params.set("search", search);
-    return adminApi.orders(params.toString())
+    return adminApi.orders("page=1&pageSize=100")
       .then((result) => {
         if (requestId !== latestRequest.current) return;
         setOrders((result || []).map(normalizeOrder));
@@ -33,9 +31,9 @@ export default function Orders() {
         if (requestId === latestRequest.current) setError(requestError.message);
       })
       .finally(() => {
-        if (requestId === latestRequest.current) setLoadedQuery(query);
+        if (requestId === latestRequest.current) setLoaded(true);
       });
-  }, [filter, search, query]);
+  }, []);
 
   useEffect(() => {
     loadOrders();
@@ -47,31 +45,50 @@ export default function Orders() {
       .catch((requestError) => setError(requestError.message));
   }, []);
 
-  const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      const matchesStatus =
-        filter === "ALL" ||
-        order.status === filter;
+  const { tableGroups, billedOrders } = useMemo(() => {
+    const matches = (order) =>
+      (filter === "ALL" || order.status === filter) &&
+      `${order.orderNumber} ${order.table}`.toLowerCase().includes(search.toLowerCase());
 
-      const searchValue =
-        `${order.orderNumber} ${order.table}`.toLowerCase();
+    const open = new Map();
+    const billed = [];
+    for (const order of orders) {
+      if (order.billedAt) {
+        if (matches(order)) billed.push(order);
+        continue;
+      }
+      const key = order.tableId || order.table;
+      if (!open.has(key)) open.set(key, []);
+      open.get(key).push(order);
+    }
 
-      const matchesSearch =
-        searchValue.includes(
-          search.toLowerCase()
-        );
-
-      return (
-        matchesStatus &&
-        matchesSearch
-      );
-    });
+    const when = (order) => new Date(order.placedAt || order.createdAt);
+    const groups = [];
+    for (const [key, list] of open) {
+      const sorted = [...list].sort((a, b) => when(a) - when(b));
+      // Tables with only cancelled orders have nothing to bill.
+      if (sorted.every((order) => order.status === "CANCELLED")) {
+        billed.push(...sorted.filter(matches));
+        continue;
+      }
+      if (sorted.some(matches)) {
+        groups.push({ key, table: sorted[0].table, tableId: sorted[0].tableId, orders: sorted });
+      }
+    }
+    groups.sort((a, b) => when(b.orders.at(-1)) - when(a.orders.at(-1)));
+    billed.sort((a, b) => when(b) - when(a));
+    return { tableGroups: groups, billedOrders: billed };
   }, [orders, filter, search]);
+
+  const closeTable = async (tableId) => {
+    await adminApi.closeTableBill(tableId);
+    setBillingOrder(null);
+    await loadOrders();
+  };
 
   const handleStatusChange = async (orderId, status) => {
     try {
       await adminApi.setOrderStatus(orderId, status);
-      setLoadedQuery(null);
       await loadOrders();
     } catch (requestError) {
       setError(requestError.message);
@@ -121,7 +138,24 @@ export default function Orders() {
       >
         {loading && <p role="status" className="py-12 text-center text-gray-500">Loading orders...</p>}
         <AnimatePresence mode="popLayout">
-          {!loading && filteredOrders.map((order) => (
+          {!loading && tableGroups.map((group) => (
+            <TableOrderGroup
+              key={group.key}
+              table={group.table}
+              orders={group.orders}
+              onStatusChange={handleStatusChange}
+              onGenerateBill={() => setBillingOrder(mergeTableOrders(group))}
+            />
+          ))}
+        </AnimatePresence>
+
+        {!loading && billedOrders.length > 0 && (
+          <h2 className="pt-4 text-sm font-semibold uppercase tracking-wide text-gray-400">
+            Billed orders
+          </h2>
+        )}
+        <AnimatePresence mode="popLayout">
+          {!loading && billedOrders.map((order) => (
             <AdminOrderCard
               key={order.id}
               order={order}
@@ -133,7 +167,7 @@ export default function Orders() {
           ))}
         </AnimatePresence>
 
-        {!loading && !error && filteredOrders.length === 0 && (
+        {!loading && !error && tableGroups.length === 0 && billedOrders.length === 0 && (
           <div className="rounded-3xl border border-orange-100 bg-white p-12 text-center">
             <p className="text-gray-500">
               No orders found.
@@ -148,10 +182,55 @@ export default function Orders() {
           order={billingOrder}
           restaurant={restaurant}
           onClose={() => setBillingOrder(null)}
+          onCloseTable={billingOrder.tableId && billingOrder.orderNumbers
+            ? () => closeTable(billingOrder.tableId)
+            : undefined}
+          canCloseTable={billingOrder.canClose}
         />
       )}
     </div>
   );
+}
+
+// One bill for everything a table has ordered; identical lines are added together.
+function mergeTableOrders(group) {
+  const live = group.orders.filter((order) => order.status !== "CANCELLED");
+  const lines = new Map();
+  for (const order of live) {
+    for (const item of order.items) {
+      const key = [
+        item.name,
+        item.variantName ?? "",
+        item.unitPriceMinor,
+        (item.addOns || []).map((addOn) => addOn.name).sort().join("+"),
+      ].join("|");
+      const line = lines.get(key);
+      if (line) {
+        line.quantity += item.quantity;
+        line.lineTotalMinor += item.lineTotalMinor || 0;
+      } else {
+        lines.set(key, { ...item, id: key, lineTotalMinor: item.lineTotalMinor || 0 });
+      }
+    }
+  }
+  const sum = (field) => live.reduce((total, order) => total + (order[field] || 0), 0);
+  const numbers = live.map((order) => order.orderNumber).sort((a, b) => a - b);
+  const allServed = live.every((order) => order.status === "SERVED");
+  return {
+    id: `table-${group.key}`,
+    tableId: group.tableId,
+    table: group.table,
+    orderNumber: numbers[0],
+    orderNumbers: numbers,
+    status: allServed ? "SERVED" : "IN PROGRESS",
+    canClose: group.orders.every((order) => order.status === "SERVED" || order.status === "CANCELLED"),
+    placedAt: live[0].placedAt || live[0].createdAt,
+    subtotalMinor: sum("subtotalMinor"),
+    taxMinor: sum("taxMinor"),
+    discountMinor: sum("discountMinor"),
+    totalMinor: sum("totalMinor"),
+    items: [...lines.values()].map((line) => ({ ...line, lineTotal: line.lineTotalMinor / 100 })),
+  };
 }
 
 function normalizeOrder(order) {

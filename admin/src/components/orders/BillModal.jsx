@@ -7,7 +7,12 @@ const money = (amount) => new Intl.NumberFormat("en-IN", {
   minimumFractionDigits: 2,
 }).format(amount || 0);
 
-export default function BillModal({ order, restaurant, onClose }) {
+export default function BillModal({ order, restaurant, onClose, onCloseTable, canCloseTable = true }) {
+  const [closing, setClosing] = useState(false);
+  const [closeError, setCloseError] = useState("");
+  const orderLabel = order.orderNumbers
+    ? order.orderNumbers.map((number) => `#${number}`).join(", ")
+    : `#${order.orderNumber}`;
   const subtotal = (order.subtotalMinor ?? 0) / 100;
   const [taxName, setTaxName] = useState("GST");
   const [taxRate, setTaxRate] = useState(() => subtotal > 0
@@ -25,6 +30,17 @@ export default function BillModal({ order, restaurant, onClose }) {
   const placedAt = new Date(order.placedAt || order.createdAt);
   const invoiceNumber = `INV-${placedAt.toISOString().slice(0, 10).replaceAll("-", "")}-${String(order.orderNumber).padStart(4, "0")}`;
 
+  const handleCloseTable = async () => {
+    setClosing(true);
+    setCloseError("");
+    try {
+      await onCloseTable();
+    } catch (error) {
+      setCloseError(error.message);
+      setClosing(false);
+    }
+  };
+
   return (
     <div className="bill-modal-overlay" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose();
@@ -32,8 +48,8 @@ export default function BillModal({ order, restaurant, onClose }) {
       <section className="bill-modal" role="dialog" aria-modal="true" aria-labelledby="bill-modal-title">
         <header className="bill-modal-header no-print">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-[#e86a33]">Order #{order.orderNumber}</p>
-            <h2 id="bill-modal-title" className="mt-1 text-xl font-bold text-gray-900">Generate bill</h2>
+            <p className="text-xs font-bold uppercase tracking-wide text-[#e86a33]">{order.orderNumbers ? `Table ${order.table} · Orders ${orderLabel}` : `Order ${orderLabel}`}</p>
+            <h2 id="bill-modal-title" className="mt-1 text-xl font-bold text-gray-900">{order.orderNumbers ? "Table bill" : "Generate bill"}</h2>
           </div>
           <button type="button" onClick={onClose} aria-label="Close bill preview" className="rounded-lg p-2 text-gray-500 hover:bg-orange-50">
             <X size={19} />
@@ -78,7 +94,7 @@ export default function BillModal({ order, restaurant, onClose }) {
             </div>
 
             <div className="invoice-order-meta">
-              <span><strong>Order</strong> #{order.orderNumber}</span>
+              <span><strong>{order.orderNumbers?.length > 1 ? "Orders" : "Order"}</strong> {orderLabel}</span>
               <span><strong>Table</strong> {order.table}</span>
               <span><strong>Status</strong> {order.status}</span>
             </div>
@@ -121,8 +137,25 @@ export default function BillModal({ order, restaurant, onClose }) {
         </div>
 
         <footer className="bill-modal-footer no-print">
-          <p>Use the print dialog to print or choose “Save as PDF”.</p>
+          <p>
+            {closeError
+              ? <span role="alert" style={{ color: "#b42318" }}>{closeError}</span>
+              : onCloseTable && !canCloseTable
+                ? "Serve or cancel every order to close this table."
+                : "Use the print dialog to print or choose “Save as PDF”."}
+          </p>
           <button type="button" onClick={onClose} className="bill-secondary-button">Close</button>
+          {onCloseTable && (
+            <button
+              type="button"
+              onClick={handleCloseTable}
+              disabled={!canCloseTable || closing}
+              className="bill-secondary-button"
+              style={!canCloseTable || closing ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+            >
+              {closing ? "Closing..." : "Mark paid & close table"}
+            </button>
+          )}
           <button type="button" onClick={() => window.print()} className="bill-primary-button">
             <Printer size={16} />
             <FileDown size={16} />
