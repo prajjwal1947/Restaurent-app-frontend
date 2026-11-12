@@ -68,40 +68,27 @@ export default function App() {
         setCategories(["All", ...new Set(items.map((item) => item.category).filter(Boolean))]);
         setOrderHistory(history);
         
-        // Find any running order from backend
-        const runningOrder = history.find(
+        // Find ALL running orders for this table
+        const runningOrders = history.filter(
           (order) => order.status === "PENDING" || 
                      order.status === "CONFIRMED" || 
                      order.status === "PREPARING" || 
                      order.status === "READY"
         );
         
-        if (runningOrder) {
-          // Fetch current order status from backend
-          getPublicOrder(runningOrder.id)
-            .then((currentOrder) => {
-              setActiveScreen("menu");
-              setOrderId(currentOrder.id);
-              setOrderNumber(currentOrder.orderNumber);
-              setOrderStatus(currentOrder.status || "PENDING");
-              setOrderTotal(Math.round((currentOrder.totalMinor || 0) / 100));
-              setOrderRating(currentOrder.rating ?? null);
-              setShowOrderStatus(true);
-              setShowWelcome(false);
-            })
-            .catch(() => {
-              // Fallback to history data if API fails
-              setActiveScreen("menu");
-              setOrderId(runningOrder.id);
-              setOrderNumber(runningOrder.orderNumber);
-              setOrderStatus(runningOrder.status || "PENDING");
-              setOrderTotal(Math.round((runningOrder.totalMinor || 0) / 100));
-              setOrderRating(runningOrder.rating ?? null);
-              setShowOrderStatus(true);
-              setShowWelcome(false);
-            });
+        if (runningOrders.length > 0) {
+          // Show all running orders in history view
+          setActiveScreen("history");
+          setShowOrderStatus(false);
+          setShowWelcome(false);
+          // Set the first one as current for tracking
+          setOrderId(runningOrders[0].id);
+          setOrderNumber(runningOrders[0].orderNumber);
+          setOrderStatus(runningOrders[0].status || "PENDING");
+          setOrderTotal(Math.round((runningOrders[0].totalMinor || 0) / 100));
+          setOrderRating(runningOrders[0].rating ?? null);
         } else {
-          // No running order, show welcome or history
+          // No running orders
           setShowWelcome(history.length === 0);
           if (history[0]) {
             setActiveScreen("history");
