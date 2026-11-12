@@ -69,6 +69,7 @@ export default function App() {
         setOrderHistory(history);
         setShowWelcome(history.length === 0);
         if (history[0]) {
+          setActiveScreen("history");
           setOrderId(history[0].id);
           setOrderNumber(history[0].orderNumber);
           setOrderStatus(history[0].status || "PENDING");
