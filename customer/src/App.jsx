@@ -67,14 +67,50 @@ export default function App() {
         setTrendingItems(trending.map(normalizeMenuItem));
         setCategories(["All", ...new Set(items.map((item) => item.category).filter(Boolean))]);
         setOrderHistory(history);
-        setShowWelcome(history.length === 0);
-        if (history[0]) {
-          setActiveScreen("history");
-          setOrderId(history[0].id);
-          setOrderNumber(history[0].orderNumber);
-          setOrderStatus(history[0].status || "PENDING");
-          setOrderTotal(Math.round((history[0].totalMinor || 0) / 100));
-          setOrderRating(history[0].rating ?? null);
+        
+        // Find any running order from backend
+        const runningOrder = history.find(
+          (order) => order.status === "PENDING" || 
+                     order.status === "CONFIRMED" || 
+                     order.status === "PREPARING" || 
+                     order.status === "READY"
+        );
+        
+        if (runningOrder) {
+          // Fetch current order status from backend
+          getPublicOrder(runningOrder.id)
+            .then((currentOrder) => {
+              setActiveScreen("menu");
+              setOrderId(currentOrder.id);
+              setOrderNumber(currentOrder.orderNumber);
+              setOrderStatus(currentOrder.status || "PENDING");
+              setOrderTotal(Math.round((currentOrder.totalMinor || 0) / 100));
+              setOrderRating(currentOrder.rating ?? null);
+              setShowOrderStatus(true);
+              setShowWelcome(false);
+            })
+            .catch(() => {
+              // Fallback to history data if API fails
+              setActiveScreen("menu");
+              setOrderId(runningOrder.id);
+              setOrderNumber(runningOrder.orderNumber);
+              setOrderStatus(runningOrder.status || "PENDING");
+              setOrderTotal(Math.round((runningOrder.totalMinor || 0) / 100));
+              setOrderRating(runningOrder.rating ?? null);
+              setShowOrderStatus(true);
+              setShowWelcome(false);
+            });
+        } else {
+          // No running order, show welcome or history
+          setShowWelcome(history.length === 0);
+          if (history[0]) {
+            setActiveScreen("history");
+            setOrderId(history[0].id);
+            setOrderNumber(history[0].orderNumber);
+            setOrderStatus(history[0].status || "PENDING");
+            setOrderTotal(Math.round((history[0].totalMinor || 0) / 100));
+            setOrderRating(history[0].rating ?? null);
+          }
         }
       })
       .catch((requestError) => setError(requestError.message))
