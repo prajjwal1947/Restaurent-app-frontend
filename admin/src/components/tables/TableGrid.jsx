@@ -4,6 +4,9 @@ import TableCard from "./TableCard";
 export default function TableGrid({
   tables,
   onGenerateQR,
+  onEdit,
+  onDelete,
+  onStatusChange,
 }) {
   return (
     <motion.div
@@ -16,6 +19,9 @@ export default function TableGrid({
             key={table.id}
             table={table}
             onGenerateQR={onGenerateQR}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onStatusChange={onStatusChange}
           />
         ))}
       </AnimatePresence>

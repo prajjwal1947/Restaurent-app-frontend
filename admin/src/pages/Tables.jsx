@@ -8,11 +8,13 @@ import { useEffect, useMemo, useState } from "react";
 import TableGrid from "../components/tables/TableGrid";
 import QRCodeModal from "../components/tables/QRCodeModal";
 import AddTableModal from "../components/tables/AddTableModal";
+import EditTableModal from "../components/tables/EditTableModal";
 import { adminApi } from "../services/api";
 
 export default function Tables() {
   const [tables, setTables] = useState([]);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [search, setSearch] =
     useState("");
@@ -23,11 +25,24 @@ export default function Tables() {
   const [showAddModal, setShowAddModal] =
     useState(false);
 
+  const [editingTable, setEditingTable] =
+    useState(null);
+
+  const [showEditModal, setShowEditModal] =
+    useState(false);
+
   useEffect(() => {
-    const params = search ? `search=${encodeURIComponent(search)}` : "";
-    adminApi.tables(params)
-      .then((result) => setTables(result || []))
-      .catch((requestError) => setError(requestError.message));
+    const loadTables = async () => {
+      try {
+        const params = search ? `search=${encodeURIComponent(search)}` : "";
+        const result = await adminApi.tables(params);
+        setTables(result || []);
+      } catch (requestError) {
+        setError(requestError.message);
+      }
+    };
+
+    loadTables();
   }, [search]);
 
   const filteredTables = useMemo(() => {
@@ -50,10 +65,57 @@ export default function Tables() {
         table.status === "OCCUPIED"
     ).length;
 
+  const handleEditTable = (table) => {
+    setEditingTable(table);
+    setShowEditModal(true);
+  };
+
+  const handleSaveTable = async (tableId, updates) => {
+    try {
+      setError("");
+      const updated = await adminApi.updateTable(tableId, updates);
+      setTables(tables.map(t => t.id === tableId ? updated : t));
+      setSuccess("Table updated successfully");
+      setTimeout(() => setSuccess(""), 3000);
+      setShowEditModal(false);
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  };
+
+  const handleDeleteTable = async (tableId) => {
+    if (!window.confirm("Are you sure you want to delete this table? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      setError("");
+      await adminApi.deleteTable(tableId);
+      setTables(tables.filter(t => t.id !== tableId));
+      setSuccess("Table deleted successfully");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  };
+
+  const handleStatusChange = async (tableId, newStatus) => {
+    try {
+      setError("");
+      const updated = await adminApi.setTableStatus(tableId, newStatus);
+      setTables(tables.map(t => t.id === tableId ? updated : t));
+      setSuccess(`Table marked as ${newStatus.toLowerCase()}`);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  };
+
   return (
     <>
       <div className="mx-auto max-w-7xl">
         {error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</p>}
+        {success && <p className="mb-4 rounded-xl bg-green-50 p-3 text-sm text-green-600">{success}</p>}
         {/* Header */}
 
         <motion.div
@@ -156,6 +218,9 @@ export default function Tables() {
             onGenerateQR={
               setSelectedTable
             }
+            onEdit={handleEditTable}
+            onDelete={handleDeleteTable}
+            onStatusChange={handleStatusChange}
           />
         </div>
       </div>
@@ -176,16 +241,29 @@ export default function Tables() {
         }
         onAdd={async (newTable) => {
           try {
+            setError("");
             const created = await adminApi.createTable({
               number: newTable.number,
               capacity: newTable.capacity,
             });
             setTables((current) => [...current, created]);
             setShowAddModal(false);
+            setSuccess("Table added successfully");
+            setTimeout(() => setSuccess(""), 3000);
           } catch (requestError) {
             setError(requestError.message);
           }
         }}
+      />
+
+      <EditTableModal
+        open={showEditModal}
+        table={editingTable}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingTable(null);
+        }}
+        onSave={handleSaveTable}
       />
     </>
   );
