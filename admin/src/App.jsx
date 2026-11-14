@@ -8,6 +8,7 @@ import {
 import AdminLayout from "./components/layout/AdminLayout";
 
 import Login from "./pages/Login";
+import StaffOTPLogin from "./pages/StaffOTPLogin";
 import Dashboard from "./pages/Dashboard";
 import Orders from "./pages/Orders";
 import Menu from "./pages/Menu";
@@ -57,6 +58,15 @@ export default function App() {
           element={
             <PublicOnlyRoute>
               <Login />
+            </PublicOnlyRoute>
+          }
+        />
+
+        <Route
+          path="/staff-login"
+          element={
+            <PublicOnlyRoute>
+              <StaffOTPLogin />
             </PublicOnlyRoute>
           }
         />

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 
 import SettingSection from "../components/settings/SettingSection";
+import OTPSettings from "../components/OTPSettings";
 import { adminApi } from "../services/api";
 import { useRestaurantBranding } from "../context/BrandingStore";
 
@@ -144,11 +145,16 @@ export default function Settings() {
 		setLogoUploading(true);
 		try {
 			const updated = await adminApi.uploadRestaurantLogo(logoFile);
-			setLogoUrl(updated.branding?.logoUrl || updated.logoUrl || "");
+			console.log("Upload response:", updated);
+			const newLogoUrl = updated.branding?.logoUrl || updated.logoUrl || "";
+			console.log("Setting logoUrl to:", newLogoUrl);
+			setLogoUrl(newLogoUrl);
 			setLogoFile(null);
-			await refreshRestaurant();
+			const refreshed = await refreshRestaurant();
+			console.log("Refreshed restaurant:", refreshed);
 			setBrandingMessage("Restaurant logo updated.");
 		} catch (requestError) {
+			console.error("Upload error:", requestError);
 			setError(requestError.message);
 		} finally {
 			setLogoUploading(false);
@@ -209,7 +215,19 @@ export default function Settings() {
 							</label>
 							<div className="flex items-center gap-4">
 								<div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gray-100 text-gray-500">
-									{logoUrl ? <img src={logoUrl} alt="Restaurant logo preview" className="h-full w-full object-cover" /> : <ImagePlus size={24} />}
+									{logoUrl ? (
+										<img 
+											src={logoUrl} 
+											alt="Restaurant logo preview" 
+											className="h-full w-full object-cover" 
+											onError={(e) => {
+												console.error("Settings logo failed to load from:", e.target.src);
+												e.target.style.display = "none";
+											}}
+										/>
+									) : (
+										<ImagePlus size={24} />
+									)}
 								</div>
 								<div className="min-w-0 flex-1">
 									<label className="block text-sm font-medium text-gray-700" htmlFor="restaurant-logo">Restaurant logo</label>
@@ -236,7 +254,19 @@ export default function Settings() {
 							<p className="mb-3 text-xs font-medium text-gray-500">Customer menu preview</p>
 							<div className="rounded-xl p-4 text-white" style={{ backgroundImage: `linear-gradient(125deg, ${gradientStart}, ${gradientEnd})` }}>
 								<div className="flex items-center gap-3">
-									{logoUrl ? <img src={logoUrl} alt="" className="h-10 w-10 rounded-lg bg-white object-cover" /> : <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20"><ImagePlus size={18} /></div>}
+									{logoUrl ? (
+										<img 
+											src={logoUrl} 
+											alt="" 
+											className="h-10 w-10 rounded-lg bg-white object-cover" 
+											onError={(e) => {
+												console.error("Preview logo failed to load from:", e.target.src);
+												e.target.style.display = "none";
+											}}
+										/>
+									) : (
+										<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20"><ImagePlus size={18} /></div>
+									)}
 									<div><p className="text-[10px] font-semibold uppercase">Table 12</p><p className="break-words font-semibold">{brandName.trim() || restaurantName || "Your restaurant"}</p></div>
 								</div>
 								<p className="mt-5 text-lg font-semibold">Chef&apos;s picks</p>
@@ -371,6 +401,8 @@ export default function Settings() {
 						/>
 					</div>
 				</SettingSection>
+
+				<OTPSettings />
 			</div>
 		</div>
 	);

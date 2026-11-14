@@ -124,7 +124,15 @@ export default function Sidebar({
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-[#e86a33] text-xl shadow-sm">
               {restaurant?.branding?.logoUrl || restaurant?.logoUrl
-                ? <img src={restaurant.branding?.logoUrl || restaurant.logoUrl} alt={`${restaurant.name} logo`} className="h-full w-full object-cover" />
+                ? <img 
+                    src={restaurant.branding?.logoUrl || restaurant.logoUrl} 
+                    alt={`${restaurant.name} logo`} 
+                    className="h-full w-full object-cover" 
+                    onError={(e) => {
+                      console.error("Logo failed to load from:", e.target.src);
+                      e.target.style.display = "none";
+                    }}
+                  />
                 : "🍽️"}
             </div>
 
