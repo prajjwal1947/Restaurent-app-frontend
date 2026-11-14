@@ -152,6 +152,12 @@ export const adminApi = {
   setOrderStatus: (id, status) => apiRequest(`/orders/${id}/status`, {
     method: "PATCH", body: { status },
   }),
+  // Urban Piper / Marketplace Orders
+  urbanPiperOrders: (params = "") => apiRequest(`/urbanpiper/orders${params ? `?${params}` : ""}`),
+  getUrbanPiperOrder: (id) => apiRequest(`/urbanpiper/orders/${id}`),
+  setUrbanPiperOrderStatus: (id, status, prepTimeMinutes) => apiRequest(`/urbanpiper/orders/${id}/status`, {
+    method: "POST", body: { status, prepTimeMinutes },
+  }),
   restaurant: () => apiRequest("/restaurant"),
   updateRestaurant: (body) => apiRequest("/restaurant", { method: "PATCH", body }),
   updateBranding: (body) => apiRequest("/restaurant/branding", { method: "PATCH", body }),

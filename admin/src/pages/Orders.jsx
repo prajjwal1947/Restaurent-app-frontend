@@ -5,6 +5,7 @@ import OrderFilters from "../components/orders/OrderFilters";
 import AdminOrderCard from "../components/orders/AdminOrderCard";
 import TableOrderGroup from "../components/orders/TableOrderGroup";
 import BillModal from "../components/orders/BillModal";
+import MarketplaceOrdersComingSoon from "../components/orders/MarketplaceOrdersComingSoon";
 import { adminApi } from "../services/api";
 
 export default function Orders() {
@@ -15,6 +16,7 @@ export default function Orders() {
   const [search, setSearch] = useState("");
   const [billingOrder, setBillingOrder] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
+  const [activeTab, setActiveTab] = useState("restaurant");
   const latestRequest = useRef(0);
   const loading = !loaded;
 
@@ -117,64 +119,99 @@ export default function Orders() {
         </h1>
 
         <p className="mt-1 text-gray-500">
-          Manage and track all restaurant
-          orders.
+          Manage and track all restaurant and marketplace orders.
         </p>
       </motion.div>
 
-      <div className="mt-8">
-        <OrderFilters
-          activeFilter={filter}
-          setActiveFilter={setFilter}
-          search={search}
-          setSearch={setSearch}
-        />
+      {/* Tab Navigation */}
+      <div className="mt-8 flex gap-2 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab("restaurant")}
+          className={`py-3 px-4 font-semibold border-b-2 transition-colors ${
+            activeTab === "restaurant"
+              ? "border-blue-500 text-blue-600"
+              : "border-transparent text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          Restaurant Orders
+        </button>
+        <button
+          onClick={() => setActiveTab("marketplace")}
+          className={`py-3 px-4 font-semibold border-b-2 transition-colors ${
+            activeTab === "marketplace"
+              ? "border-blue-500 text-blue-600"
+              : "border-transparent text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          Marketplace Orders (Swiggy, Zomato)
+        </button>
       </div>
 
-      <motion.div
-        layout
-        className="mt-6 space-y-4"
-        aria-busy={loading}
-      >
-        {loading && <p role="status" className="py-12 text-center text-gray-500">Loading orders...</p>}
-        <AnimatePresence mode="popLayout">
-          {!loading && tableGroups.map((group) => (
-            <TableOrderGroup
-              key={group.key}
-              table={group.table}
-              orders={group.orders}
-              onStatusChange={handleStatusChange}
-              onGenerateBill={() => setBillingOrder(mergeTableOrders(group))}
+      {/* Restaurant Orders Tab */}
+      {activeTab === "restaurant" && (
+        <>
+          <div className="mt-8">
+            <OrderFilters
+              activeFilter={filter}
+              setActiveFilter={setFilter}
+              search={search}
+              setSearch={setSearch}
             />
-          ))}
-        </AnimatePresence>
-
-        {!loading && billedOrders.length > 0 && (
-          <h2 className="pt-4 text-sm font-semibold uppercase tracking-wide text-gray-400">
-            Billed orders
-          </h2>
-        )}
-        <AnimatePresence mode="popLayout">
-          {!loading && billedOrders.map((order) => (
-            <AdminOrderCard
-              key={order.id}
-              order={order}
-              onStatusChange={
-                handleStatusChange
-              }
-              onGenerateBill={setBillingOrder}
-            />
-          ))}
-        </AnimatePresence>
-
-        {!loading && !error && tableGroups.length === 0 && billedOrders.length === 0 && (
-          <div className="rounded-3xl border border-orange-100 bg-white p-12 text-center">
-            <p className="text-gray-500">
-              No orders found.
-            </p>
           </div>
-        )}
-      </motion.div>
+
+          <motion.div
+            layout
+            className="mt-6 space-y-4"
+            aria-busy={loading}
+          >
+            {loading && <p role="status" className="py-12 text-center text-gray-500">Loading orders...</p>}
+            <AnimatePresence mode="popLayout">
+              {!loading && tableGroups.map((group) => (
+                <TableOrderGroup
+                  key={group.key}
+                  table={group.table}
+                  orders={group.orders}
+                  onStatusChange={handleStatusChange}
+                  onGenerateBill={() => setBillingOrder(mergeTableOrders(group))}
+                />
+              ))}
+            </AnimatePresence>
+
+            {!loading && billedOrders.length > 0 && (
+              <h2 className="pt-4 text-sm font-semibold uppercase tracking-wide text-gray-400">
+                Billed orders
+              </h2>
+            )}
+            <AnimatePresence mode="popLayout">
+              {!loading && billedOrders.map((order) => (
+                <AdminOrderCard
+                  key={order.id}
+                  order={order}
+                  onStatusChange={
+                    handleStatusChange
+                  }
+                  onGenerateBill={setBillingOrder}
+                />
+              ))}
+            </AnimatePresence>
+
+            {!loading && !error && tableGroups.length === 0 && billedOrders.length === 0 && (
+              <div className="rounded-3xl border border-orange-100 bg-white p-12 text-center">
+                <p className="text-gray-500">
+                  No orders found.
+                </p>
+              </div>
+            )}
+          </motion.div>
+        </>
+      )}
+
+      {/* Marketplace Orders Tab */}
+      {activeTab === "marketplace" && (
+        <div className="mt-8">
+          <MarketplaceOrdersComingSoon />
+        </div>
+      )}
 
       {billingOrder && (
         <BillModal
